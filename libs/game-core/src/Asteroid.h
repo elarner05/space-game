@@ -1,0 +1,29 @@
+#pragma once
+#include "Entity.h"
+#include <string>
+#include "Animation.h"
+#include "Kinematics.h"
+
+class Asteroid : public Entity {
+public:
+	static inline float sampleThrust = 50.f;
+	Texture2D texture;
+	Animations animations;
+	Kinematics kinematics;
+
+	Asteroid() = delete;
+	Asteroid(float x, float y, const char* filepath, const char* metapath);
+	Asteroid(float x, float y, float velocity_x, float velocity_y, const char* filepath, const char* metapath);
+	~Asteroid();
+
+	float getX() const;
+	float getY() const;
+
+	void applyThrust(float dt, float thrust);
+
+	void draw() override;
+	void update(float dt) override;
+	void reset() override;
+		
+
+};

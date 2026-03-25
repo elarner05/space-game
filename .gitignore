@@ -1,0 +1,17 @@
+raylib-master/
+_build/
+_bin/
+.vs
+.vscode
+bin/
+build/
+Makefile
+obj
+*.vcxproj
+/*.vcxproj
+*.filters
+*.user
+*.sln
+/*.sln
+*.slnx
+/*.slnx
