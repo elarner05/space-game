@@ -1,14 +1,15 @@
 #include "Spaceship.h"
 #include "TextureManager.h"
 #include "Animation.h"
+#include "Core.h"
 #include <string>
 
 Spaceship::Spaceship(const char* textureFilepath, const char* metaFilepath, const char* colliderFilepath) :
-	texture( TextureManager::loadTexture(textureFilepath) ),
-	kinematics ( {{100, 100}, {0, 0}, 0} ),
-	pos( &(kinematics.position) ),
-	animations( Animations(metaFilepath) ),
-	collisions(kinematics.position, colliderFilepath)
+	texture( &TextureManager::loadTexture(textureFilepath) ),
+	kinematics ( Core::registerComponent(Kinematics{{100, 100}, {0, 0}, 0}) ),
+	pos( &kinematics->position ),
+	animations( Core::registerComponent(Animations(metaFilepath)) ),
+	colliders( Core::registerComponent(CompoundCollider(colliderFilepath)) )
 	{
 };
 
@@ -18,40 +19,42 @@ Spaceship::~Spaceship() {
 
 float Spaceship::getX() const
 {
-	return kinematics.position.x;
+	return kinematics->position.x;
 }
 
 float Spaceship::getY() const
 {
-	return kinematics.position.y;
+	return kinematics->position.y;
 }
 
 void Spaceship::applyThrust(float dt, float thrust)
 {
-	kinematics.accelerate(dt, thrust);
+	kinematics->accelerate(dt, thrust);
 }
 
 void Spaceship::changeRotation(float amount)
 {
-	kinematics.changeRotation(amount);
+	kinematics->changeRotation(amount);
+	colliders->setRotation(kinematics->rotation * DEG2RAD);
 	
 }
 
 void Spaceship::accelerateRotation(const Vector2& mouse, const float dt, const float thrust)
 {
-	kinematics.accelerateRotation({ kinematics.position.x, kinematics.position.y}, mouse, dt, thrust);
+	kinematics->accelerateRotation({ kinematics->position.x, kinematics->position.y}, mouse, dt, thrust);
 
 }
 
 void Spaceship::draw() {
-	DrawTexturePro(texture, animations.getSource(), Rectangle{kinematics.position.x, kinematics.position.y, animations.dimensions.x, animations.dimensions.y}, Vector2{animations.origin.x, animations.origin.y}, (float)kinematics.rotation, RAYWHITE);
-	//collisions._drawColliders(RED);
+	DrawTexturePro(*texture, animations->getSource(), Rectangle{kinematics->position.x, kinematics->position.y, animations->dimensions.x, animations->dimensions.y}, Vector2{animations->origin.x, animations->origin.y}, (float)kinematics->rotation, RAYWHITE);
+	colliders->drawDebug(kinematics->position, RED);
+	
 }
 
 void Spaceship::update(float dt) {
-	kinematics.update(dt);
-	animations.update(dt);
-	collisions.setRotation(kinematics.rotation * DEG2RAD);
+	// kinematics->update(dt);
+	// animations->update(dt);
+	colliders->setRotation(kinematics->rotation * DEG2RAD);
 }
 
 void Spaceship::reset() {

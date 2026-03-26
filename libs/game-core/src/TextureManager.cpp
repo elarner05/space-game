@@ -4,14 +4,14 @@
 namespace TextureManager {
 	std::map<const char*, Texture2D> textures;
 
-	Texture2D loadTexture(const char* filepath) {
+	Texture2D& loadTexture(const char* filepath) {
 		auto itr = textures.find(filepath);
 		if (itr != textures.end()) {
 			return itr->second;
 		}
 		Texture2D tex = LoadTexture(filepath);
 		textures.insert({ filepath, tex });
-		return tex;
+		return textures[filepath];
 	}
 	void unloadTexture(const char *filepath) {
 		auto itr = textures.find(filepath);

@@ -16,6 +16,7 @@ class Animations {
 public:
 	Animations() = delete;
 	Animations(const char* filepath);
+	Animations(const Animations& other);
 	~Animations();
 
 	void switchAnimation(std::string to);

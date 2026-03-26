@@ -12,19 +12,19 @@ void GameInit()
     SetTargetFPS(60);
     //BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
 
-    // load resources
+    // load data
+    Core::init();
 }
 
 void GameCleanup()
 {
-    // unload resources
-    TextureManager::unloadAllTextures();
+    // unload data
+    Core::unloadAll();
     CloseWindow();
 }
 
 bool GameUpdate()
 {
-
     return true;
 }
 
@@ -36,10 +36,12 @@ void GameDraw()
 int main()
 {
     GameInit();
+    
+    // Test rotation calculations
 
-    Spaceship s1{ "resources/spaceship-1.png", "resources/spaceship-1.meta", "resources/spaceship-1-collider.meta"};
-    Asteroid a(200.f, 200.f, 1, 1 , "resources/asteroid.png", "resources/asteroid.meta");
-    a.kinematics.angularVelocity = 1;
+    Spaceship s1{ "data/spaceship-1.png", "data/spaceship-1.meta", "data/spaceship-1-collider.meta"};
+    Asteroid a(200.f, 200.f, 1, 1 , "data/asteroid.png", "data/asteroid.meta");
+    a.kinematics->angularVelocity = 1;
     float t = 0.0f;
 
 
@@ -51,15 +53,15 @@ int main()
             
 
             if (IsKeyDown(KEY_W)) {
-                if (!(s1.animations.currentAnimation == std::string("engine-start") || s1.animations.currentAnimation == std::string("engine-on"))) {
-                    s1.animations.switchAnimation(std::string("engine-start"));
-                    s1.animations.changeAnimation(std::string("engine-on"));
+                if (!(s1.animations->currentAnimation == std::string("engine-start") || s1.animations->currentAnimation == std::string("engine-on"))) {
+                    s1.animations->switchAnimation(std::string("engine-start"));
+                    s1.animations->changeAnimation(std::string("engine-on"));
                 }
-                s1.kinematics.accelerate(t, 50.f);
+                s1.kinematics->accelerate(t, 50.f);
             }
             else {
-                if (s1.animations.currentAnimation == std::string("engine-on") || s1.animations.currentAnimation == std::string("engine-start")) {
-                    s1.animations.switchAnimation(std::string("idle"));
+                if (s1.animations->currentAnimation == std::string("engine-on") || s1.animations->currentAnimation == std::string("engine-start")) {
+                    s1.animations->switchAnimation(std::string("idle"));
                 }
             }
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
@@ -76,9 +78,9 @@ int main()
                 s1.kinematics.rotation += 1;
                 if (s1.kinematics.rotation > 359) s1.kinematics.rotation = 0;
             }*/
-            
             s1.update(t);
             a.update(t);
+            Core::update(t);
 
             t = 0.f;
         }

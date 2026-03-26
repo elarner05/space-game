@@ -4,12 +4,15 @@
 #include "Animation.h"
 #include "Kinematics.h"
 
+#include "Core.h"
+
 class Asteroid : public Entity {
 public:
 	static inline float sampleThrust = 50.f;
 	Texture2D texture;
-	Animations animations;
-	Kinematics kinematics;
+	Animations* animations;
+	Kinematics* kinematics;
+	CompoundCollider* collisions;
 
 	Asteroid() = delete;
 	Asteroid(float x, float y, const char* filepath, const char* metapath);

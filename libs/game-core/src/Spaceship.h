@@ -3,17 +3,18 @@
 #include "Entity.h"
 #include "Animation.h"
 #include "Kinematics.h"
-#include "Collision.h"
+#include "CompoundCollider.h"
 
 
 class Spaceship : public Entity {
 public:
 	static inline float sampleThrust = 50.f;
 
-	Texture2D texture;
-	Animations animations;
-	Kinematics kinematics;
-	Collision collisions;
+	Texture2D* texture;
+	Animations* animations;
+	Kinematics* kinematics;
+	// Collision colliders;
+	CompoundCollider* colliders;
 	Vector2 *pos;
 	Spaceship() = delete;
 	Spaceship(const char* textureFilepath, const char* metaFilepath, const char* colliderFilepath);

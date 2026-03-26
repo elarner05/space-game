@@ -38,6 +38,10 @@ Animations::Animations(const char* filepath) {
 
 }
 
+Animations::Animations(const Animations& other) : animations(other.animations), dimensions(other.dimensions), origin(other.origin), currentAnimation(other.currentAnimation), nextAnimation(other.nextAnimation), frame(other.frame), tp(other.tp), end(other.end) {
+
+}
+
 Animations::~Animations() {
 
 }

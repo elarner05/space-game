@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(space-game VERSION 1.0)
 
-
-
 file(GLOB_RECURSE SOURCES game/src/*.cpp)
 file(GLOB_RECURSE HEADERS game/include/*.h)
 
@@ -19,6 +17,6 @@ target_link_libraries(space-game PRIVATE game-core raylib)
 
 add_custom_command(TARGET space-game POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/resources
-    $<TARGET_FILE_DIR:space-game>/resources
+    ${CMAKE_SOURCE_DIR}/data
+    $<TARGET_FILE_DIR:space-game>/data
 )

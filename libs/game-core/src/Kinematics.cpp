@@ -23,7 +23,7 @@ void Kinematics::update(float dt) {
     
     //angularVelocity *= 0.95f; // dampen angular velocity
     rotation += angularVelocity * dt;
-   
+    TraceLog(LOG_INFO, "Kinematics update: pos (%.2f, %.2f), vel (%.2f, %.2f)", position.x, position.y, velocity.x, velocity.y);
 }
 
 void Kinematics::changeRotation(float amount)
