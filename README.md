@@ -46,7 +46,8 @@ cd space-game
 mkdir build && cd build
 cmake ..
 cmake --build . --config Release
-.\Release\space-game.exe
+cd Release\                                            # needs to be in the release directory for relative paths
+.\space-game.exe
 ```
 
 > You'll need [Visual Studio](https://visualstudio.microsoft.com/) or [MinGW](https://www.mingw-w64.org/) installed, and CMake on your PATH.
