@@ -3,19 +3,19 @@
 
 
 
-Asteroid::Asteroid(float x, float y, const char* filepath, const char* metapath)
+Asteroid::Asteroid(float x, float y, const char* filepath, const char* metapath, const char* colliderFilepath)
     : texture(TextureManager::loadTexture(filepath)),
     animations(Core::registerComponent(Animations(metapath))), 
     kinematics(Core::registerComponent(Kinematics{{x, y}, {0, 0}, 0})),
-    collisions(Core::registerComponent(CompoundCollider{}))
+    collisions(Core::registerComponent(CompoundCollider(colliderFilepath)))
 {
 }
 
-Asteroid::Asteroid(float x, float y, float velocity_x, float velocity_y, const char* filepath, const char* metapath)
+Asteroid::Asteroid(float x, float y, float velocity_x, float velocity_y, const char* filepath, const char* metapath, const char* colliderFilepath)
     : texture(TextureManager::loadTexture(filepath)),
     animations(Core::registerComponent(Animations(metapath))), 
     kinematics(Core::registerComponent(Kinematics{{x, y}, {velocity_x, velocity_y}, 0})),
-    collisions(Core::registerComponent(CompoundCollider{}))
+    collisions(Core::registerComponent(CompoundCollider(colliderFilepath)))
 {
 
 }

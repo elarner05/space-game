@@ -2,7 +2,7 @@
 #include "raylib.h"
 
 #include "../include/game.h"   // an external header in this project
-#include "lib.h"	// an external header in the static lib project
+#include "game-core.h"	// an external header in the static lib project
 
 
 void GameInit()
@@ -40,8 +40,8 @@ int main()
     // Test rotation calculations
 
     Spaceship s1{ "data/spaceship-1.png", "data/spaceship-1.meta", "data/spaceship-1-collider.meta"};
-    Asteroid a(200.f, 200.f, 1, 1 , "data/asteroid.png", "data/asteroid.meta");
-    a.kinematics->angularVelocity = 1;
+    Asteroid a(200.f, 200.f, 1, 1 , "data/asteroid.png", "data/asteroid.meta", "data/asteroid-collider.meta");
+    a.kinematics->angularVelocity = 5;
     float t = 0.0f;
 
 

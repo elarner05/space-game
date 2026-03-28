@@ -15,8 +15,8 @@ public:
 	CompoundCollider* collisions;
 
 	Asteroid() = delete;
-	Asteroid(float x, float y, const char* filepath, const char* metapath);
-	Asteroid(float x, float y, float velocity_x, float velocity_y, const char* filepath, const char* metapath);
+	Asteroid(float x, float y, const char* filepath, const char* metapath, const char* colliderFilepath);
+	Asteroid(float x, float y, float velocity_x, float velocity_y, const char* filepath, const char* metapath, const char* colliderFilepath);
 	~Asteroid();
 
 	float getX() const;

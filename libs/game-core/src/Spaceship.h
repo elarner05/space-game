@@ -13,7 +13,6 @@ public:
 	Texture2D* texture;
 	Animations* animations;
 	Kinematics* kinematics;
-	// Collision colliders;
 	CompoundCollider* colliders;
 	Vector2 *pos;
 	Spaceship() = delete;
