@@ -20,8 +20,12 @@ file(GLOB_RECURSE SOURCES game/src/*.cpp)
 file(GLOB_RECURSE HEADERS game/include/*.h)
 
 add_executable(space-game ${SOURCES} ${HEADERS})
+
 target_compile_features(space-game PRIVATE cxx_std_17)
 set_target_properties(space-game PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+set_target_properties(space-game PROPERTIES
+    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:space-game>"
+)
 
 add_subdirectory(libs/game-core)
 
