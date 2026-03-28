@@ -6,7 +6,7 @@ A simple space game built in C++ using [raylib](https://www.raylib.com/), implem
 
 ```
 space-game/
-├── data/               # Game assets (textures, sounds, etc.)
+├── data/               # Game assets (textures, etc.)
 ├── game/
 │   ├── src/            # Game source files (.cpp)
 │   └── include/        # Game headers (.h)
@@ -31,7 +31,7 @@ No manual dependency installation is required, CMake will download raylib automa
 
 ```bash
 git clone https://github.com/elarner05/space-game.git
-cd space-game
+cd space-game/
 mkdir build && cd build
 cmake ..
 make
