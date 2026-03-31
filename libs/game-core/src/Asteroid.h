@@ -5,6 +5,7 @@
 #include "Kinematics.h"
 
 #include "Core.h"
+#include "debug_flags.h"
 
 class Asteroid : public Entity {
 public:
@@ -12,7 +13,7 @@ public:
 	Texture2D texture;
 	Animations* animations;
 	Kinematics* kinematics;
-	CompoundCollider* collisions;
+	CompoundCollider* colliders;
 
 	// Asteroid() = delete;
 	Asteroid(float x, float y, const char* filepath, const char* metapath, const char* colliderFilepath);

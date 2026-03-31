@@ -11,6 +11,9 @@ void GameInit()
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE);
     InitWindow(InitialWidth, InitialHeight, "Example");
     SetTargetFPS(60);
+
+    Core::Debug::showHitboxes()     = false;
+    Core::Debug::showEntityOrigins() = false;
     //BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
 
     // load data
@@ -73,6 +76,11 @@ int main()
                     s1.animations->switchAnimation(std::string("idle"));
                 }
             }
+
+            if (IsKeyPressed(KEY_C)) {
+                Core::Debug::showHitboxes() = !Core::Debug::showHitboxes();
+            }
+
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                 Vector2 mouse = GetMousePosition();
                 s1.accelerateRotation(mouse, t, 10.f);

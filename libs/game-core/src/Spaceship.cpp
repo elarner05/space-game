@@ -2,6 +2,7 @@
 #include "TextureManager.h"
 #include "Animation.h"
 #include "Core.h"
+
 #include <string>
 
 Spaceship::Spaceship(const char* textureFilepath, const char* metaFilepath, const char* colliderFilepath) :
@@ -48,7 +49,10 @@ void Spaceship::accelerateRotation(const Vector2& mouse, const float dt, const f
 
 void Spaceship::draw() {
 	DrawTexturePro(*texture, animations->getSource(), Rectangle{kinematics->position.x, kinematics->position.y, animations->dimensions.x, animations->dimensions.y}, Vector2{animations->origin.x, animations->origin.y}, (float)kinematics->rotation*RAD2DEG, RAYWHITE);
-	colliders->drawDebug(kinematics->position, RED);
+	if (Core::Debug::showHitboxes())
+        colliders->drawDebug(kinematics->position, RED);
+    if (Core::Debug::showEntityOrigins())
+        DrawCircle(kinematics->position.x, kinematics->position.y, 2, RED);
 	
 }
 

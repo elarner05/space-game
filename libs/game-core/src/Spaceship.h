@@ -5,6 +5,8 @@
 #include "Kinematics.h"
 #include "CompoundCollider.h"
 
+#include "debug_flags.h"
+
 
 class Spaceship : public Entity {
 public:

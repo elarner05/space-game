@@ -8,6 +8,10 @@ Implementation includes:
 - the expanding polytope algorithm (EPA), for normal calculation in collisions
 - Baumgarte positional correction
 
+## Controls
+- **`w`**: accelerate forwards
+- **`Left Click`**: Accelerate rotation towards mouse
+- **`c`**: toggle colliders
 ## Project Structure
 
 ```
