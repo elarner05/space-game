@@ -9,4 +9,9 @@ namespace Core::Debug {
         static bool flag = false;
         return flag;
     }
+
+    bool& showVelocities() {
+        static bool flag = false;
+        return flag;
+    }
 }

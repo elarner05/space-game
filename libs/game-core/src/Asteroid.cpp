@@ -49,6 +49,26 @@ void Asteroid::draw()
         colliders->drawDebug(kinematics->position, RED);
     if (Core::Debug::showEntityOrigins())
         DrawCircle(kinematics->position.x, kinematics->position.y, 2, RED);
+    if (Core::Debug::showVelocities()) {
+		Vector2 start = kinematics->position;
+		Vector2 end   = { start.x + kinematics->velocity.x, start.y + kinematics->velocity.y };
+
+		DrawLine(start.x, start.y, end.x, end.y, BLUE);
+
+		// arrowhead
+		Vector2 dir = Vector2Normalize(Vector2Subtract(end, start));
+		Vector2 perp = { -dir.y, dir.x }; // perpendicular to direction
+
+		constexpr float HEAD_LENGTH = 8.f;
+		constexpr float HEAD_WIDTH  = 4.f;
+
+		Vector2 tip    = end;
+		Vector2 base   = Vector2Subtract(tip, Vector2Scale(dir,  HEAD_LENGTH));
+		Vector2 left   = Vector2Add     (base, Vector2Scale(perp, HEAD_WIDTH));
+		Vector2 right  = Vector2Subtract(base, Vector2Scale(perp, HEAD_WIDTH));
+
+		DrawTriangle(tip, right, left, BLUE);
+	}
 }
 
 void Asteroid::update(float dt)

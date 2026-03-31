@@ -12,11 +12,10 @@ void GameInit()
     InitWindow(InitialWidth, InitialHeight, "Example");
     SetTargetFPS(60);
 
-    Core::Debug::showHitboxes()     = false;
+    Core::Debug::showHitboxes() = false;
     Core::Debug::showEntityOrigins() = false;
-    //BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
+    Core::Debug::showVelocities() = false;
 
-    // load data
     Core::init();
 }
 
