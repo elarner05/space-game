@@ -10,16 +10,18 @@
 #include "KinematicsSystem.h"
 #include "AnimationSystem.h"
 
+#include "gjk.h"
+#include "epa.h"
+
 #include "TextureManager.h"
 
 namespace Core {
-    // AnimationSystem animationSystem;
-    // KinematicsSystem kinematicsSystem;
-    // ColliderSystem colliderSystem;
 
     void init();
 
     void update(float dt);
+    void processCollisions(float dt);
+    // bool handleCollision(Kinematics& kinA, Kinematics& kinB, CompoundCollider& colA, CompoundCollider& colB);
 
     CompoundCollider* registerComponent(CompoundCollider component);
     Kinematics* registerComponent(Kinematics component);

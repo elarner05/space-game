@@ -11,7 +11,7 @@ ColliderSystem::~ColliderSystem() = default;
 bool ColliderSystem::checkNeedsRotationUpdate() {
     for (size_t i = 0; i < m_entities.size(); ++i) {
         if (m_entities[i].needsRotationUpdate) {
-            std::cout << "Rotation update needed for entity " << i << std::endl;
+            // std::cout << "Rotation update needed for entity " << i << std::endl;
             return true;
         }
     }
@@ -59,15 +59,15 @@ void ColliderSystem::update(float dt)
         applyRotations();
     }
 
-    for (size_t i = 0; i < m_entities.size(); ++i) {
-        for (size_t j = i + 1; j < m_entities.size(); ++j) {
-            bool inContact = GJK::collided(m_entities[i], m_positions[i], m_entities[j], m_positions[j]);
+    // for (size_t i = 0; i < m_entities.size(); ++i) {
+    //     for (size_t j = i + 1; j < m_entities.size(); ++j) {
+    //         bool inContact = GJK::collided(m_entities[i], m_positions[i], m_entities[j], m_positions[j]);
             
-            if (inContact) {
-                TraceLog(LOG_INFO, "Collision detected between entity %zu and entity %zu", i, j);
-            }
-        }
-    }
+    //         if (inContact) {
+    //             TraceLog(LOG_INFO, "Collision detected between entity %zu and entity %zu", i, j);
+    //         }
+    //     }
+    // }
 }
 
 CompoundCollider* ColliderSystem::registerEntity(CompoundCollider entity)

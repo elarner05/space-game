@@ -7,12 +7,12 @@
 #include <iostream>
 #include <sstream>
 
-static bool withinBounds(const Collider& a, const Vector2& pos1, const Collider& b, const Vector2& pos2)
+bool withinBounds(const Collider& a, const Vector2& pos1, const Collider& b, const Vector2& pos2)
 {
     return a.radius + b.radius > Vector2Distance(Vector2Add(pos1, a.offset), Vector2Add(pos2, b.offset));
 }
 
-static bool updateBounds(Collider& col) 
+bool updateBounds(Collider& col) 
 {
     if (col.count == 0 && col.radius == 0.f) 
     {
@@ -135,7 +135,6 @@ bool CompoundCollider::loadColliders(const char* filepath)
             std::stringstream ss(line.substr(first));
             std::string key, eq;
             ss >> key >> eq >> colliderCount;
-            std::cout << colliderCount << std::endl;
 
             if (colliderCount <= 0 || colliderCount > MAX_COLLIDERS)
                 return false;
@@ -228,30 +227,29 @@ bool CompoundCollider::loadColliders(const char* filepath)
     return true;
 }
 
-namespace GJK {
-    bool collided(const CompoundCollider& left, const Vector2 pos1, const CompoundCollider& right, const Vector2 pos2)// uses bound-phase check + GJK algorithm to maximise efficiency
-    {
-        bool checking = false;
-        for (int i{ 0 }; i < left.colliderCount; i++) {
-            for (int j{ 0 }; j < right.colliderCount; j++) {
-                if (!withinBounds(left.colliders[i], pos1, right.colliders[j], pos2)) {
-                    continue;
-                }
-                if (left.colliders[i].count == 0 && right.colliders[j].count == 0) {
-                    return true; // if both are circles and passed the bounds check, they have collided
-                }
-                checking = true;
-                if (gjk(left.colliders[i], pos1, right.colliders[j], pos2)) {
-                    return true;
-                }
-            }
-        }
-        if (checking)
-            std::cout << "Checked for collision" << std::endl;
+// namespace GJK {
+//     bool collided(const CompoundCollider& left, const Vector2 pos1, const CompoundCollider& right, const Vector2 pos2)// uses bound-phase check + GJK algorithm to maximise efficiency
+//     {
 
-        return false;
-    }
-}
+//         for (int i{ 0 }; i < left.colliderCount; i++) {
+//             for (int j{ 0 }; j < right.colliderCount; j++) {
+//                 if (!withinBounds(left.colliders[i], pos1, right.colliders[j], pos2)) {
+//                     continue;
+//                 }
+//                 if (left.colliders[i].count == 0 && right.colliders[j].count == 0) {
+//                     return true; // if both are circles and passed the bounds check, they have collided
+//                 }
+
+//                 Vector2 simplex[3] = {0};
+//                 if (gjk(left.colliders[i], pos1, right.colliders[j], pos2, simplex)) {
+//                     return true;
+//                 }
+//             }
+//         }
+
+//         return false;
+//     }
+// }
 
 void CompoundCollider::drawDebug(const Vector2& pos, const Color c) const
 {

@@ -6,11 +6,12 @@
 
 Spaceship::Spaceship(const char* textureFilepath, const char* metaFilepath, const char* colliderFilepath) :
 	texture( &TextureManager::loadTexture(textureFilepath) ),
-	kinematics ( Core::registerComponent(Kinematics{{100, 100}, {0, 0}, 0}) ),
+	kinematics ( Core::registerComponent(Kinematics{{100, 100}, {0, 0}, 20, 0, 0, 0}) ),
 	pos( &kinematics->position ),
 	animations( Core::registerComponent(Animations(metaFilepath)) ),
 	colliders( Core::registerComponent(CompoundCollider(colliderFilepath)) )
 	{
+	kinematics->computeAndSetBoundingRadius(*colliders);
 };
 
 Spaceship::~Spaceship() {
@@ -35,7 +36,7 @@ void Spaceship::applyThrust(float dt, float thrust)
 void Spaceship::changeRotation(float amount)
 {
 	kinematics->changeRotation(amount);
-	colliders->setRotation(kinematics->rotation * DEG2RAD);
+	colliders->setRotation(kinematics->rotation);
 	
 }
 
@@ -46,15 +47,13 @@ void Spaceship::accelerateRotation(const Vector2& mouse, const float dt, const f
 }
 
 void Spaceship::draw() {
-	DrawTexturePro(*texture, animations->getSource(), Rectangle{kinematics->position.x, kinematics->position.y, animations->dimensions.x, animations->dimensions.y}, Vector2{animations->origin.x, animations->origin.y}, (float)kinematics->rotation, RAYWHITE);
+	DrawTexturePro(*texture, animations->getSource(), Rectangle{kinematics->position.x, kinematics->position.y, animations->dimensions.x, animations->dimensions.y}, Vector2{animations->origin.x, animations->origin.y}, (float)kinematics->rotation*RAD2DEG, RAYWHITE);
 	colliders->drawDebug(kinematics->position, RED);
 	
 }
 
 void Spaceship::update(float dt) {
-	// kinematics->update(dt);
-	// animations->update(dt);
-	colliders->setRotation(kinematics->rotation * DEG2RAD);
+	colliders->setRotation(kinematics->rotation);
 }
 
 void Spaceship::reset() {

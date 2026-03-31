@@ -26,8 +26,11 @@ public:
 	void drawDebug(const Vector2& pos, const Color c = RED) const;
 
 	void setRotation(float rot);
+	
 };
 
-namespace GJK {
-	bool collided(const CompoundCollider& left, const Vector2 pos1, const CompoundCollider& right, const Vector2 pos2);
-}
+bool withinBounds(const Collider& a, const Vector2& pos1, const Collider& b, const Vector2& pos2);
+bool updateBounds(Collider& col);
+// namespace GJK {
+// 	bool collided(const CompoundCollider& left, const Vector2 pos1, const CompoundCollider& right, const Vector2 pos2);
+// }

@@ -4,7 +4,7 @@
 
 template<typename T>
 class System {
-protected:
+public:
     std::deque<T> m_entities;
 
 public:

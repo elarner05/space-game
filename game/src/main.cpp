@@ -3,6 +3,7 @@
 
 #include "../include/game.h"   // an external header in this project
 #include "game-core.h"	// an external header in the static lib project
+#include <iostream>
 
 
 void GameInit()
@@ -36,14 +37,22 @@ void GameDraw()
 int main()
 {
     GameInit();
-    
-    // Test rotation calculations
 
     Spaceship s1{ "data/spaceship-1.png", "data/spaceship-1.meta", "data/spaceship-1-collider.meta"};
-    Asteroid a(200.f, 200.f, 1, 1 , "data/asteroid.png", "data/asteroid.meta", "data/asteroid-collider.meta");
-    a.kinematics->angularVelocity = 5;
-    float t = 0.0f;
 
+    Asteroid asts[] = {
+        Asteroid(100.f, 200.f, 1, 1, "data/asteroid.png", "data/asteroid.meta", "data/asteroid-collider.meta"),
+        Asteroid(150.f, 250.f, 1, 1, "data/asteroid.png", "data/asteroid.meta", "data/asteroid-collider.meta"),
+        Asteroid(200.f, 300.f, 1, 1, "data/asteroid.png", "data/asteroid.meta", "data/asteroid-collider.meta"),
+        Asteroid(250.f, 350.f, 1, 1, "data/asteroid.png", "data/asteroid.meta", "data/asteroid-collider.meta"),
+        Asteroid(300.f, 400.f, 1, 1, "data/asteroid.png", "data/asteroid.meta", "data/asteroid-collider.meta")
+    };
+
+    for (size_t i = 0; i < 5; i++) {
+        asts[i].kinematics->angularVelocity = (i%2 == 0? -1:1)*0.1f;
+    }
+
+    float t = 0.0f;
 
     while (!WindowShouldClose())
     {
@@ -66,20 +75,13 @@ int main()
             }
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                 Vector2 mouse = GetMousePosition();
-                s1.accelerateRotation(mouse, t, 15.f);
+                s1.accelerateRotation(mouse, t, 10.f);
             }
             
-            /*if (IsKeyDown(KEY_A)) {
-                s1.kinematics.rotation-=1;
-                if (s1.kinematics.rotation < 0) s1.kinematics.rotation = 359;
-            }
-
-            if (IsKeyDown(KEY_D)) {
-                s1.kinematics.rotation += 1;
-                if (s1.kinematics.rotation > 359) s1.kinematics.rotation = 0;
-            }*/
             s1.update(t);
-            a.update(t);
+            for (auto& ast : asts) {
+                ast.update(t);
+            }
             Core::update(t);
 
             t = 0.f;
@@ -91,10 +93,11 @@ int main()
         
         BeginDrawing();
         ClearBackground(BLACK);
-        a.draw();
+        for (auto& ast : asts) {
+            ast.draw();
+        }
         s1.draw();
-        //DrawRectangle(0, 100, 100, 1, RED);
-        //DrawRectangle(100, 0, 1, 100, RED);
+
         DrawFPS(10, 10);
         EndDrawing();
     }

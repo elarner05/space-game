@@ -72,11 +72,8 @@ static inline Vector2 SupportPoint(const Collider& c, const Vector2& pos, Vector
     }
 }
 
-static inline Vector2 Support( // gets Minkowski sum
-    const Collider& a, const Vector2& posA,
-    const Collider& b, const Vector2& posB,
-    Vector2 dir
-)
+// gets Minkowski sum
+static inline Vector2 Support(const Collider& a, const Vector2& posA, const Collider& b, const Vector2& posB, Vector2 dir)
 {
     return Vector2Subtract(
         SupportPoint(a, posA, dir),
@@ -84,15 +81,20 @@ static inline Vector2 Support( // gets Minkowski sum
     );
 }
 
+
+
+
+static constexpr int GJK_MAX_ITERS = 20;
+
 // The GJK yes/no test
-bool gjk(const Collider& first, const Vector2& posA, const Collider& second, const Vector2& posB)
+bool gjk(const Collider& first, const Vector2& posA, const Collider& second, const Vector2& posB, Vector2 outSimplex[3])
 {
 
     size_t  index = 0; // index of current vertex of simplex
-    Vector2 a, b, c, direction, ao, ab, ac, abperp, acperp, simplex[3] = {0};
+    Vector2 a, b, c, direction, ao, ab, ac, abperp, acperp = {0};
 
     Vector2 position1 = AvgPoint(first, posA); // not a CoG but
-    Vector2 position2 = AvgPoint(second, posB);// it's ok for GJK )
+    Vector2 position2 = AvgPoint(second, posB);// it's ok for GJK
      
 
     // initial direction from the center of 1st body to the center of 2nd body
@@ -104,19 +106,18 @@ bool gjk(const Collider& first, const Vector2& posA, const Collider& second, con
     }
 
     // set the first support as initial point of the new simplex
-    a = simplex[0] = Support(first, posA, second, posB, direction);
+    a = outSimplex[0] = Support(first, posA, second, posB, direction);
 
     if (Vector2DotProduct(a, direction) <= 0) {
         return false;
     } // no collision
 
-    direction = Vector2Negate(
-            a); // The next search direction is always towards the origin, so the next search direction is negate(a)
+    direction = Vector2Negate(a); // The next search direction is always towards the origin, so the next search direction is negate(a)
+
     int iter_count = 0;
-    const int GJK_MAX_ITERS = 20;
 
     while (iter_count++ < GJK_MAX_ITERS) {
-        a = simplex[++index] = Support(
+        a = outSimplex[++index] = Support(
                 first, posA, second, posB, direction);
 
         if (Vector2DotProduct(a, direction) <= 1e-6f)
@@ -126,7 +127,7 @@ bool gjk(const Collider& first, const Vector2& posA, const Collider& second, con
 
         // simplex has 2 points (a line segment, not a triangle yet)
         if (index < 2) {
-            b             = simplex[0];
+            b             = outSimplex[0];
             ab            = Vector2Subtract(b, a); // from point A to B
             direction     = TripProduct(
                     ab, ao, ab); // normal to AB towards Origin
@@ -135,8 +136,8 @@ bool gjk(const Collider& first, const Vector2& posA, const Collider& second, con
             continue; // skip to next iteration
         }
 
-        b  = simplex[1];
-        c  = simplex[0];
+        b  = outSimplex[1];
+        c  = outSimplex[0];
         ab = Vector2Subtract(b, a); // from point A to B
         ac = Vector2Subtract(c, a); // from point A to C
 
@@ -154,12 +155,12 @@ bool gjk(const Collider& first, const Vector2& posA, const Collider& second, con
             if (Vector2DotProduct(abperp, ao) < 0)
                 return true; // collision
 
-            simplex[0] = simplex[1]; // swap first element (point C)
+            outSimplex[0] = outSimplex[1]; // swap first element (point C)
 
             direction = abperp; // new direction is normal to AB towards Origin
         }
 
-        simplex[1] = simplex[2]; // swap element in the middle (point B)
+        outSimplex[1] = outSimplex[2]; // swap element in the middle (point B)
         --index;
     }
 

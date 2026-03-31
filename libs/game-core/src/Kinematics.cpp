@@ -1,11 +1,11 @@
 #include "Kinematics.h"
 
 void Kinematics::accelerate(float dt, float thrust) {
-    float rotationRad = rotation * DEG2RAD;
+    
 
     Vector2 forward = {
-        sinf(rotationRad),
-        -cosf(rotationRad)
+        sinf(rotation),
+        -cosf(rotation)
     };
 
     Vector2 acceleration = {0};
@@ -23,7 +23,6 @@ void Kinematics::update(float dt) {
     
     //angularVelocity *= 0.95f; // dampen angular velocity
     rotation += angularVelocity * dt;
-    TraceLog(LOG_INFO, "Kinematics update: pos (%.2f, %.2f), vel (%.2f, %.2f)", position.x, position.y, velocity.x, velocity.y);
 }
 
 void Kinematics::changeRotation(float amount)
@@ -44,15 +43,15 @@ void Kinematics::accelerateRotation(const Vector2 &origin, const Vector2& mouse,
     float deltaY = mouse.y-origin.y;
     float angleInRadians = atan2(deltaX, -deltaY);
 
-    float targetAngle = angleInRadians * RAD2DEG;
+    float targetAngle = angleInRadians;
 
-    if (targetAngle < 0) targetAngle += 360.0f;
+    if (targetAngle < 0) targetAngle += 2*PI;
 
 
     float angleDiff = targetAngle - rotation;
 
-    if (angleDiff > 180.0f)  angleDiff -= 360.0f;
-    if (angleDiff < -180.0f) angleDiff += 360.0f;
+    if (angleDiff > PI)  angleDiff -= 2*PI;
+    if (angleDiff < -PI) angleDiff += 2*PI;
 
     // accelerate toward target
     angularVelocity += angleDiff * angularThrust * dt;
@@ -64,11 +63,31 @@ void Kinematics::accelerateRotation(const Vector2 &origin, const Vector2& mouse,
     rotation += angularVelocity * dt;
 
     // keep rotation in [0, 360)
-    if (rotation >= 360.0f) rotation -= 360.0f;
-    if (rotation < 0.0f)    rotation += 360.0f;
+    if (rotation >= 2*PI) rotation -= 2*PI;
+    if (rotation < 0.0f)    rotation += 2*PI;
 }
 
 void Kinematics::setRotationSpeed(float value)
 {
     angularVelocity = value;
+}
+
+float Kinematics::computeEntityBoundingRadius(const CompoundCollider& cc)
+{
+    float maxR = 0.f;
+    for (int i = 0; i < cc.colliderCount; i++)
+    {
+        const Collider& col = cc.colliders[i];
+        float offsetDist = Vector2Length(col.offset); // offset from entity origin
+
+        // furthest possible point = offset + collider's own bounding radius
+        float r = offsetDist + col.radius;
+        if (r > maxR) maxR = r;
+    }
+    return maxR;
+}
+float Kinematics::computeAndSetBoundingRadius(const CompoundCollider& cc)
+{
+    boundingRadius = this->computeEntityBoundingRadius(cc);
+    return boundingRadius;
 }

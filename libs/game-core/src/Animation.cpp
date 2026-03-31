@@ -6,7 +6,7 @@
 Animations::Animations(const char* filepath) {
 
 	std::ifstream fin(filepath);
-	std::cout << filepath << std::endl;
+
 	assert(fin && "Failed to open animation file");
 
 	float w, h;
@@ -23,7 +23,6 @@ Animations::Animations(const char* filepath) {
 	std::string name;
 	int sx, sy, frames, fps;
 	while (fin >> name >> sx >> sy >> frames >> fps) {
-		//std::cout << name << " " << sx << " " << sy << " " << frames << " " << fps << std::endl;
 		animation anim{ sx, sy, frames, fps, false};
 		animations.insert({ name, anim });
 	}
