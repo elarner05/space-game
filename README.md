@@ -1,6 +1,12 @@
 # space-game
 
-A simple space game built in C++ using [raylib](https://www.raylib.com/), implementing common game engine concepts including collision detection via the GJK algorithm.
+A simple space game built in C++ using [raylib](https://www.raylib.com/), implementing common game engine concepts.
+
+Implementation includes:
+- a simple entity component system (ECS)
+- the Gilbert-Johnson-Keerthi algorithm (GJK), for collision detection
+- the expanding polytope algorithm (EPA), for normal calculation in collisions
+- Baumgarte positional correction
 
 ## Project Structure
 
