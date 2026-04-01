@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include <cmath>
+#include <algorithm>
 #include "CompoundCollider.h"
 
 constexpr int   CHUNK_SIZE = 1024; // world units per chunk side

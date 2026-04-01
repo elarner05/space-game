@@ -46,7 +46,7 @@ void Asteroid::draw()
     if (Core::Debug::showHitboxes())
         colliders->drawDebug(screenPos, RED);
     if (Core::Debug::showEntityOrigins())
-        DrawCircle(screenPos.x, screenPos.y, 2, RED);
+        DrawCircle((int)screenPos.x, (int)screenPos.y, 2, RED);
     if (Core::Debug::showVelocities()) {
         Vector2 start = screenPos;
         Vector2 end   = { start.x + kinematics->velocity.x, start.y + kinematics->velocity.y };

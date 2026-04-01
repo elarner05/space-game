@@ -2,6 +2,7 @@
 #include "raymath.h"
 #include "raylib.h"
 
+#include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -145,7 +146,11 @@ bool CompoundCollider::loadColliders(const char* filepath)
         // Collider block header
         if (line[first] == '[')
         {
+#if defined(_MSC_VER)
+            if (sscanf_s(line.c_str(), "[collider%d]", &current) != 1)
+#else
             if (sscanf(line.c_str(), "[collider%d]", &current) != 1)
+#endif
                 return false;
 
             if (current < 0 || current >= colliderCount)
@@ -258,7 +263,7 @@ void CompoundCollider::drawDebug(const Vector2& pos, const Color c) const
         const Collider& col = colliders[i]; 
         Vector2 origin = Vector2Add(pos, col.offset);
         if (col.count == 0) {
-            DrawCircleLines((origin.x), (origin.y), col.radius, c);
+            DrawCircleLines((int)roundf(origin.x), (int)roundf(origin.y), col.radius, c);
             continue;
         }
         for (unsigned char v = 0; v < col.count - 1; v++) {
