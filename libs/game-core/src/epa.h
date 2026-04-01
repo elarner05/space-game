@@ -17,7 +17,7 @@ ContactManifold epa( const Collider& a, const Vector2& posA, const Collider& b, 
 
 // applies an impulse based collision response to a collsion, based on the epa manifold
 // (restitution: 0 = perfectly inelastic, 1 = perfectly elastic)
-void resolveCollision(const ContactManifold& manifold, Kinematics* kA, Kinematics* kB, float restitution = 0.3f);
+void resolveCollision(const ContactManifold& manifold, Kinematics* kA, const Vector2& posA, Kinematics* kB, const Vector2& posB, float restitution=0.3f);
 
 // applies a small positional correction to move entities out of penetration, using the epa manifold
 void positionalCorrection(const ContactManifold& manifold, Kinematics* kA, Kinematics* kB);

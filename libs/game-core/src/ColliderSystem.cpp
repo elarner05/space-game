@@ -58,16 +58,6 @@ void ColliderSystem::update(float dt)
     if (checkNeedsRotationUpdate()) {
         applyRotations();
     }
-
-    // for (size_t i = 0; i < m_entities.size(); ++i) {
-    //     for (size_t j = i + 1; j < m_entities.size(); ++j) {
-    //         bool inContact = GJK::collided(m_entities[i], m_positions[i], m_entities[j], m_positions[j]);
-            
-    //         if (inContact) {
-    //             TraceLog(LOG_INFO, "Collision detected between entity %zu and entity %zu", i, j);
-    //         }
-    //     }
-    // }
 }
 
 CompoundCollider* ColliderSystem::registerEntity(CompoundCollider entity)
@@ -75,10 +65,5 @@ CompoundCollider* ColliderSystem::registerEntity(CompoundCollider entity)
     m_original_entities.push_back(CompoundCollider{(entity)}); 
     m_entities.push_back(CompoundCollider{(entity)}); 
     
-    m_positions.push_back(Vector2Zero());
     return &m_entities.back();
-}
-
-void ColliderSystem::syncPositions(const std::deque<Vector2>& updatedPos) {
-    m_positions.assign(updatedPos.begin(), updatedPos.end());
 }

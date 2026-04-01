@@ -262,9 +262,9 @@ void CompoundCollider::drawDebug(const Vector2& pos, const Color c) const
             continue;
         }
         for (unsigned char v = 0; v < col.count - 1; v++) {
-            DrawLine(roundf(col.verts[v].x + origin.x), roundf(col.verts[v].y + origin.y), roundf(col.verts[v + 1].x + origin.x), roundf(col.verts[v + 1].y + origin.y), c);
+            DrawLine((int)roundf(col.verts[v].x + origin.x), (int)roundf(col.verts[v].y + origin.y), (int)roundf(col.verts[v + 1].x + origin.x), (int)roundf(col.verts[v + 1].y + origin.y), c);
         }
-        DrawLine(roundf(col.verts[0].x + origin.x), roundf(col.verts[0].y + origin.y), roundf(col.verts[col.count - 1].x + origin.x), roundf(col.verts[col.count - 1].y + origin.y), c);
+        DrawLine((int)roundf(col.verts[0].x + origin.x), (int)roundf(col.verts[0].y + origin.y), (int)roundf(col.verts[col.count - 1].x + origin.x), (int)roundf(col.verts[col.count - 1].y + origin.y), c);
     }
     
 }

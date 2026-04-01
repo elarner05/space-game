@@ -1,8 +1,8 @@
 
 #include "raylib.h"
 
-#include "../include/game.h"   // an external header in this project
-#include "game-core.h"	// an external header in the static lib project
+#include "../include/game.h"
+#include "game-core.h"
 #include <iostream>
 
 
@@ -15,6 +15,7 @@ void GameInit()
     Core::Debug::showHitboxes() = false;
     Core::Debug::showEntityOrigins() = false;
     Core::Debug::showVelocities() = false;
+    Core::Debug::showChunkBounds() = true;
 
     Core::init();
 }
@@ -41,6 +42,7 @@ int main()
     GameInit();
 
     Spaceship s1{ "data/spaceship-1.png", "data/spaceship-1.meta", "data/spaceship-1-collider.meta"};
+    Core::camera.setFollow(s1.kinematics);
 
     Asteroid asts[] = {
         Asteroid(100.f, 200.f, 1, 1, "data/asteroid.png", "data/asteroid.meta", "data/asteroid-collider.meta"),
@@ -100,10 +102,8 @@ int main()
         
         BeginDrawing();
         ClearBackground(BLACK);
-        for (auto& ast : asts) {
-            ast.draw();
-        }
-        s1.draw();
+        
+        Core::draw();
 
         DrawFPS(10, 10);
         EndDrawing();

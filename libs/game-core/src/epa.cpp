@@ -168,7 +168,7 @@ static float momentOfInertia(const Kinematics* k, float boundingRadius) {
     return 0.5f * k->mass * boundingRadius * boundingRadius; // disc formula
 }
 
-void resolveCollision(const ContactManifold& manifold, Kinematics* kA, Kinematics* kB, float restitution)
+void resolveCollision(const ContactManifold& manifold, Kinematics* kA, const Vector2& posA, Kinematics* kB, const Vector2& posB, float restitution)
 {
     if (!manifold.valid) return;
 
@@ -184,8 +184,8 @@ void resolveCollision(const ContactManifold& manifold, Kinematics* kA, Kinematic
     float invIB = (iB > 0.f) ? 1.f / iB : 0.f;
 
     // Lever arms (contact point relative to each centre of mass)
-    Vector2 rA = Vector2Subtract(manifold.contact, kA->position);
-    Vector2 rB = Vector2Subtract(manifold.contact, kB->position);
+    Vector2 rA = Vector2Subtract(manifold.contact, posA);
+    Vector2 rB = Vector2Subtract(manifold.contact, posB);
 
     // Velocity of each body AT the contact point 
     // v_contact = v_linear + omega x r  (in 2D: omega x r = { -omega*r.y, omega*r.x })
@@ -279,6 +279,8 @@ void positionalCorrection(const ContactManifold& manifold, Kinematics* kA, Kinem
     float mag = fmaxf(manifold.depth - SLOP, 0.f) / total * BIAS;
     Vector2 correction = Vector2Scale(manifold.normal, mag);
 
-    kA->position = Vector2Add(kA->position, Vector2Scale(correction, invMA));
-    kB->position = Vector2Subtract(kB->position, Vector2Scale(correction, invMB));
+    kA->localPosition = Vector2Add(kA->localPosition, Vector2Scale(correction, invMA));
+    kA->resolveChunk();
+    kB->localPosition = Vector2Subtract(kB->localPosition, Vector2Scale(correction, invMB));
+    kB->resolveChunk();
 }

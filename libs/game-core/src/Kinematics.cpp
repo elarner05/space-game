@@ -18,16 +18,21 @@ void Kinematics::accelerate(float dt, float thrust) {
 }
 
 void Kinematics::update(float dt) {
-    position.x += velocity.x * dt;
-    position.y += velocity.y * dt;
+    localPosition.x += velocity.x * dt;
+    localPosition.y += velocity.y * dt;
     
     //angularVelocity *= 0.95f; // dampen angular velocity
     rotation += angularVelocity * dt;
+    rotation = fmodf(rotation, 2*PI);
+    if (rotation < 0) rotation += 2*PI;
+    resolveChunk();
 }
 
 void Kinematics::changeRotation(float amount)
 {
     rotation += amount;
+    rotation = fmodf(rotation, 2*PI);
+    if (rotation < 0) rotation += 2*PI;
 }
 
 
@@ -35,6 +40,9 @@ void Kinematics::changeRotation(float amount)
 void Kinematics::setRotation(float value)
 {
     rotation = value;
+    rotation = fmodf(rotation, 2*PI);
+    if (rotation < 0) rotation += 2*PI;
+    
 }
 
 void Kinematics::accelerateRotation(const Vector2 &origin, const Vector2& mouse, const float dt, const float angularThrust)
@@ -63,8 +71,8 @@ void Kinematics::accelerateRotation(const Vector2 &origin, const Vector2& mouse,
     rotation += angularVelocity * dt;
 
     // keep rotation in [0, 360)
-    if (rotation >= 2*PI) rotation -= 2*PI;
-    if (rotation < 0.0f)    rotation += 2*PI;
+    rotation = fmodf(rotation, 2*PI);
+    if (rotation < 0) rotation += 2*PI;
 }
 
 void Kinematics::setRotationSpeed(float value)
@@ -90,4 +98,29 @@ float Kinematics::computeAndSetBoundingRadius(const CompoundCollider& cc)
 {
     boundingRadius = this->computeEntityBoundingRadius(cc);
     return boundingRadius;
+}
+
+void Kinematics::resolveChunk() {
+    // floor-divide to find how many chunks we've crossed
+    int deltaX = (int)floorf(localPosition.x / CHUNK_SIZEF);
+    int deltaY = (int)floorf(localPosition.y / CHUNK_SIZEF);
+
+    chunk.x += deltaX;
+    chunk.y += deltaY;
+
+    // keep localPosition within [0, CHUNK_SIZE)
+    localPosition.x -= deltaX * CHUNK_SIZEF;
+    localPosition.y -= deltaY * CHUNK_SIZEF;
+}
+
+Vector2 Kinematics::localPositionRelativeTo(ChunkCoord c, Vector2 position) const {
+    float rx = (float)(chunk.x - c.x) * CHUNK_SIZEF + localPosition.x - position.x;
+    float ry = (float)(chunk.y - c.y) * CHUNK_SIZEF + localPosition.y - position.y;
+    return { rx, ry };
+}
+
+Vector2 Kinematics::localPositionRelativeTo(const Kinematics& other) const {
+    float rx = (float)(chunk.x - other.chunk.x) * CHUNK_SIZEF + localPosition.x;
+    float ry = (float)(chunk.y - other.chunk.y) * CHUNK_SIZEF + localPosition.y;
+    return { rx, ry };
 }

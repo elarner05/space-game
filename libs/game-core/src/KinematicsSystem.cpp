@@ -18,11 +18,3 @@ Kinematics* KinematicsSystem::registerEntity(Kinematics entity)
     m_entities.push_back(Kinematics{std::move(entity)});    
     return &m_entities.back();
 }
-
-std::deque<Vector2> KinematicsSystem::getPositions() const {
-    std::deque<Vector2> positions;
-    for (auto entity : m_entities) {
-        positions.push_back(entity.position);
-    }
-    return positions;
-}

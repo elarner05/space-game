@@ -16,13 +16,11 @@ public:
 	Animations* animations;
 	Kinematics* kinematics;
 	CompoundCollider* colliders;
-	Vector2 *pos;
+	
 	Spaceship() = delete;
 	Spaceship(const char* textureFilepath, const char* metaFilepath, const char* colliderFilepath);
 	~Spaceship();
-
-	float getX() const;
-	float getY() const;
+	
 	void applyThrust(float dt, float thrust);
 	void changeRotation(float amount);
 	void accelerateRotation(const Vector2& mouse, const float dt, const float thrust);

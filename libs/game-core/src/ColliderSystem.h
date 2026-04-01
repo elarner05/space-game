@@ -8,7 +8,6 @@
 class ColliderSystem : public System<CompoundCollider> {
 protected:
     std::deque<CompoundCollider> m_original_entities;
-    std::deque<Vector2> m_positions; // parallel deque to m_entities to store positions of colliders for collision checks
 public:
     ColliderSystem();
     ~ColliderSystem();
@@ -16,7 +15,6 @@ public:
     void update(float dt) override;
     CompoundCollider* registerEntity(CompoundCollider entity) override;
 
-    void syncPositions(const std::deque<Vector2>& updatedPos);
     bool checkNeedsRotationUpdate();
     void applyRotations();
     
