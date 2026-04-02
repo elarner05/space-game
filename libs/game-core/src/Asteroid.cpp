@@ -50,7 +50,7 @@ void Asteroid::draw()
     if (Core::Debug::showVelocities()) {
         Vector2 start = screenPos;
         Vector2 end   = { start.x + kinematics->velocity.x, start.y + kinematics->velocity.y };
-        DrawLine(start.x, start.y, end.x, end.y, BLUE);
+        DrawLine((int)start.x, (int)start.y, (int)end.x, (int)end.y, BLUE);
         Vector2 dir  = Vector2Normalize(Vector2Subtract(end, start));
         Vector2 perp = { -dir.y, dir.x };
         constexpr float HEAD_LENGTH = 8.f;

@@ -13,12 +13,14 @@
 
 #include "gjk.h"
 #include "epa.h"
+#include "robin_hood.h"
 
 #include "TextureManager.h"
 #include "GameCamera.h"
-
+using EntityID = size_t;
 namespace Core {
     extern GameCamera camera;
+    extern robin_hood::unordered_map<ChunkCoord, std::vector<EntityID>> chunkMap;
 
     void init();
 

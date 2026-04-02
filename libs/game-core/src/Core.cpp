@@ -1,5 +1,6 @@
 #include "Core.h"
 #include "debug_flags.h"
+using EntityID = size_t;
 namespace Core {
     AnimationSystem animationSystem;
     KinematicsSystem kinematicsSystem;
@@ -7,13 +8,13 @@ namespace Core {
     RenderSystem renderSystem;
     GameCamera camera;
 
+    robin_hood::unordered_map<ChunkCoord, std::vector<EntityID>> chunkMap;
+
     void init() {
         animationSystem = AnimationSystem{};
         kinematicsSystem = KinematicsSystem{};
         colliderSystem = ColliderSystem{};
     }
-
-    
 
     void update(float dt) {
         kinematicsSystem.update(dt);
@@ -105,19 +106,58 @@ namespace Core {
         return handled;
     }
 
+    void handleCollision(EntityID a, EntityID b) {
+        handleCollision(
+            kinematicsSystem.m_entities[a], kinematicsSystem.m_entities[b],
+            colliderSystem.m_entities[a],   colliderSystem.m_entities[b]
+        );
+    }
+
     void processCollisions(float dt) {
-        for (size_t i = 0; i < kinematicsSystem.m_entities.size(); ++i) {
-            for (size_t j = i + 1; j < kinematicsSystem.m_entities.size(); ++j) {
-                Kinematics& kinA = kinematicsSystem.m_entities[i];
-                Kinematics& kinB = kinematicsSystem.m_entities[j];
+        ChunkCoord camChunk = camera.kinematics.chunk;
+        int simDist = GameCamera::simulationDistance;
 
-                // Cheap chunk cull before anything else
-                if (!kinA.chunk.isAdjacentTo(kinB.chunk)) continue;
+        // track tested pairs to avoid duplicates across chunk neighbours
+        robin_hood::unordered_set<uint64_t> testedPairs;
 
-                CompoundCollider& colA = colliderSystem.m_entities[i];
-                CompoundCollider& colB = colliderSystem.m_entities[j];
+        auto pairKey = [](EntityID a, EntityID b) -> uint64_t {
+            if (a > b) std::swap(a, b);
+            return ((uint64_t)a << 32) | (uint64_t)b;
+        };
 
-                handleCollision(kinA, kinB, colA, colB);
+        for (int dx = -simDist; dx <= simDist; dx++) {
+            for (int dy = -simDist; dy <= simDist; dy++) {
+                ChunkCoord chunk = { camChunk.x + dx, camChunk.y + dy };
+                auto it = chunkMap.find(chunk);
+                if (it == chunkMap.end()) continue;
+
+                const std::vector<EntityID>& locals = it->second;
+
+                // test within this chunk
+                for (size_t i = 0; i < locals.size(); i++) {
+                    for (size_t j = i + 1; j < locals.size(); j++) {
+                        EntityID a = locals[i], b = locals[j];
+                        if (testedPairs.insert(pairKey(a, b)).second)
+                            handleCollision(a, b);
+                    }
+                }
+
+                // test against each neighbour chunk
+                for (int nx = -1; nx <= 1; nx++) {
+                    for (int ny = -1; ny <= 1; ny++) {
+                        if (nx == 0 && ny == 0) continue;
+                        ChunkCoord neighbour = { chunk.x + nx, chunk.y + ny };
+                        auto nit = chunkMap.find(neighbour);
+                        if (nit == chunkMap.end()) continue;
+
+                        for (EntityID a : locals) {
+                            for (EntityID b : nit->second) {
+                                if (testedPairs.insert(pairKey(a, b)).second)
+                                    handleCollision(a, b);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -130,8 +170,11 @@ namespace Core {
     }
 
     Kinematics* registerComponent(Kinematics component) {
+        EntityID id = kinematicsSystem.m_entities.size();
+        chunkMap[component.chunk].push_back(id);
         return kinematicsSystem.registerEntity(component);
     }
+
     Animations* registerComponent(Animations component) {
         return animationSystem.registerEntity(component);
     
@@ -142,31 +185,26 @@ namespace Core {
 
 
     void renderChunkBoundaries(Color color) {
+        float cx = GetScreenWidth();
+        float cy = GetScreenHeight();
+
         const Kinematics& cam = Core::camera.kinematics;
 
-        // how many chunks fit on screen in each direction
-        int chunksX = (int)ceilf((GetScreenWidth()  * 0.5f) / CHUNK_SIZEF) + 1;
-        int chunksY = (int)ceilf((GetScreenHeight() * 0.5f) / CHUNK_SIZEF) + 1;
 
-        // pixel offset of the camera within its current chunk
-        float offsetX = cam.localPosition.x;
-        float offsetY = cam.localPosition.y;
+        int hx = cam.chunk.x + GetScreenWidth() / CHUNK_SIZE + 3;
+        int hy = cam.chunk.y + GetScreenHeight() / CHUNK_SIZE + 3;
+        // std::cout << "Rendering chunk bounds from (" << sx << ", " << sy << ") with size (" << hx << ", " << hy << ")\n";
 
-        // screen centre
-        float cx = GetScreenWidth()  * 0.5f;
-        float cy = GetScreenHeight() * 0.5f;
-
-        // vertical lines
-        for (int dx = -chunksX; dx <= chunksX; dx++) {
-            float screenX = cx + (dx * CHUNK_SIZEF) - offsetX;
-            DrawLine((int)screenX, 0, (int)screenX, GetScreenHeight(), color);
+        for (int x = cam.chunk.x; x < hx; x++) {
+            DrawLine((int)(x * CHUNK_SIZE - (cam.chunk.x *CHUNK_SIZE + cam.localPosition.x)), (int)((cam.chunk.y) * CHUNK_SIZE - (cam.chunk.y * CHUNK_SIZE + cam.localPosition.y)),
+                     (int)(x * CHUNK_SIZE - (cam.chunk.x *CHUNK_SIZE + cam.localPosition.x)), (int)((hy) * CHUNK_SIZE - (cam.chunk.y * CHUNK_SIZE +  cam.localPosition.y)), color);
         }
 
-        // horizontal lines
-        for (int dy = -chunksY; dy <= chunksY; dy++) {
-            float screenY = cy + (dy * CHUNK_SIZEF) - offsetY;
-            DrawLine(0, (int)screenY, GetScreenWidth(), (int)screenY, color);
+        for (int y = cam.chunk.y; y < hy; y++) {
+            DrawLine((int)((cam.chunk.x) * CHUNK_SIZE - (cam.chunk.x *CHUNK_SIZE + cam.localPosition.x)), (int)(y * CHUNK_SIZE - (cam.chunk.y * CHUNK_SIZE + cam.localPosition.y)),
+                     (int)((hx) * CHUNK_SIZE - (cam.chunk.x *CHUNK_SIZE + cam.localPosition.x)), (int)(y * CHUNK_SIZE - (cam.chunk.y * CHUNK_SIZE + cam.localPosition.y)), color);
         }
+
     }
 
     void unloadAll() {

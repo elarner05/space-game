@@ -100,7 +100,7 @@ float Kinematics::computeAndSetBoundingRadius(const CompoundCollider& cc)
     return boundingRadius;
 }
 
-void Kinematics::resolveChunk() {
+bool Kinematics::resolveChunk() {
     // floor-divide to find how many chunks we've crossed
     int deltaX = (int)floorf(localPosition.x / CHUNK_SIZEF);
     int deltaY = (int)floorf(localPosition.y / CHUNK_SIZEF);
@@ -111,6 +111,7 @@ void Kinematics::resolveChunk() {
     // keep localPosition within [0, CHUNK_SIZE)
     localPosition.x -= deltaX * CHUNK_SIZEF;
     localPosition.y -= deltaY * CHUNK_SIZEF;
+    return (deltaX != 0 || deltaY != 0);
 }
 
 Vector2 Kinematics::localPositionRelativeTo(ChunkCoord c, Vector2 position) const {

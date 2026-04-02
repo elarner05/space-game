@@ -4,6 +4,8 @@ public:
     Kinematics kinematics; // camera has a kinematic component, can be accelerated etc
     const Kinematics* follow;
 
+    constexpr static int simulationDistance = 3;
+
     GameCamera();
     GameCamera(ChunkCoord c, Vector2 pos);
     ~GameCamera();

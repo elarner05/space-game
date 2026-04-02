@@ -14,7 +14,7 @@ void GameCamera::updatePosition(float dt) {
     kinematics.chunk = follow->chunk;
     kinematics.localPosition = follow->localPosition;
     kinematics.localPosition = Vector2Subtract(kinematics.localPosition, Vector2{ GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f });
-    kinematics.resolveChunk();
+    bool changed = kinematics.resolveChunk();
 
 }
 

@@ -58,6 +58,9 @@ int main()
 
     float t = 0.0f;
 
+    int x = GetScreenHeight();
+    int y = GetScreenWidth();
+
     while (!WindowShouldClose())
     {
         t += GetFrameTime();
@@ -87,6 +90,12 @@ int main()
                 s1.accelerateRotation(mouse, t, 10.f);
             }
             
+            if (GetScreenHeight()!= y || GetScreenWidth() != x) {
+                x = GetScreenWidth();
+                y = GetScreenHeight();
+                std::cout << "New screen size: " << x << "x" << y << std::endl;
+            }
+
             s1.update(t);
             for (auto& ast : asts) {
                 ast.update(t);
