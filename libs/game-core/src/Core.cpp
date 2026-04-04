@@ -1,6 +1,7 @@
 #include "Core.h"
 #include "debug_flags.h"
-using EntityID = size_t;
+#include "InputHandler.h"
+
 namespace Core {
     AnimationSystem animationSystem;
     KinematicsSystem kinematicsSystem;
@@ -9,14 +10,23 @@ namespace Core {
     GameCamera camera;
 
     robin_hood::unordered_map<ChunkCoord, std::vector<EntityID>> chunkMap;
+    std::vector<size_t> entityIndexTable;
+    std::vector<EntityID> indexToEntity;
 
     void init() {
-        animationSystem = AnimationSystem{};
-        kinematicsSystem = KinematicsSystem{};
-        colliderSystem = ColliderSystem{};
+        constexpr size_t expectedEntities = 1024; // reserve more memory as the number of entities grows, better allocation startegy
+
+        kinematicsSystem.m_entities.reserve(expectedEntities);
+        colliderSystem.m_entities.reserve(expectedEntities);
+        animationSystem.m_entities.reserve(expectedEntities);
+        renderSystem.m_entities.reserve(expectedEntities);
+        indexToEntity.reserve(expectedEntities);
+        entityIndexTable.reserve(expectedEntities);
     }
 
     void update(float dt) {
+        Input::handleSpaceshipInput(EntityID{0}, dt); // for now just control the first entity, should be fine for testing
+        
         kinematicsSystem.update(dt);
         colliderSystem.update(dt);
 
@@ -27,6 +37,7 @@ namespace Core {
         animationSystem.update(dt);
     }
 
+    // draw function for entities, may need moved to a render system style approach
     void draw() {
         if ( Debug::showChunkBounds() ) {
             renderChunkBoundaries();
@@ -53,19 +64,30 @@ namespace Core {
                 col.drawDebug(screenPos, RED);
             if (Debug::showEntityOrigins())
                 DrawCircle(screenPos.x, screenPos.y, 2, RED);
-            if (Debug::showVelocities()) {
-                Vector2 velocityEnd = Vector2Add(screenPos, Vector2Scale(kin.velocity, 0.1f));
-                DrawLineV(screenPos, velocityEnd, BLUE);
+            if (Core::Debug::showVelocities()) {
+                Vector2 start = screenPos;
+                Vector2 end   = { start.x + kin.velocity.x, start.y + kin.velocity.y };
+                DrawLine((int)start.x, (int)start.y, (int)end.x, (int)end.y, BLUE);
+                Vector2 dir  = Vector2Normalize(Vector2Subtract(end, start));
+                Vector2 perp = { -dir.y, dir.x };
+                constexpr float HEAD_LENGTH = 8.f;
+                constexpr float HEAD_WIDTH  = 4.f;
+                Vector2 tip   = end;
+                Vector2 base  = Vector2Subtract(tip, Vector2Scale(dir, HEAD_LENGTH));
+                Vector2 left  = Vector2Add(base, Vector2Scale(perp, HEAD_WIDTH));
+                Vector2 right = Vector2Subtract(base, Vector2Scale(perp, HEAD_WIDTH));
+                DrawTriangle(tip, right, left, BLUE);
             }
         }
 
     }
 
+    // collision handling, needs refactored into a proper system approach
     bool handleCollision(Kinematics& kinA, Kinematics& kinB, CompoundCollider& colA, CompoundCollider& colB){
         bool handled = false;
         constexpr float elasticity = 1.f;
 
-        // Express both entities relative to the camera's chunk/position
+        // Express both entities relative to the camera's position
         Vector2 posA = kinA.localPositionRelativeTo(camera.kinematics.chunk, camera.kinematics.localPosition);
         Vector2 posB = kinB.localPositionRelativeTo(camera.kinematics.chunk, camera.kinematics.localPosition);
 
@@ -106,13 +128,15 @@ namespace Core {
         return handled;
     }
 
+    // helper to call by ID instead of components
     void handleCollision(EntityID a, EntityID b) {
         handleCollision(
-            kinematicsSystem.m_entities[a], kinematicsSystem.m_entities[b],
-            colliderSystem.m_entities[a],   colliderSystem.m_entities[b]
+            kinematicsSystem.m_entities[static_cast<size_t>(a)], kinematicsSystem.m_entities[static_cast<size_t>(b)],
+            colliderSystem.m_entities[static_cast<size_t>(a)],   colliderSystem.m_entities[static_cast<size_t>(b)]
         );
     }
 
+    // needs refactored into system
     void processCollisions(float dt) {
         ChunkCoord camChunk = camera.kinematics.chunk;
         int simDist = GameCamera::simulationDistance;
@@ -164,26 +188,64 @@ namespace Core {
         
     
  
+    // registers all the components of an entity to the system
+    EntityID registerEntity(Kinematics kin, CompoundCollider col, Animations anim, Texture2D tex) {
+        EntityID id = EntityID{static_cast<u_int32_t>(kinematicsSystem.m_entities.size())};
+        
+        kinematicsSystem.registerEntity(kin);
+        colliderSystem.registerEntity(col);
+        animationSystem.registerEntity(anim);
+        renderSystem.registerEntity(tex);
+        
+        chunkMap[kin.chunk].push_back(id);
 
-    CompoundCollider* registerComponent(CompoundCollider component) {
-        return colliderSystem.registerEntity(component);
+        kinematicsSystem.m_entities.back().computeAndSetBoundingRadius(colliderSystem.m_entities.back()); // needed for epa stage
+        return id;
     }
 
-    Kinematics* registerComponent(Kinematics component) {
-        EntityID id = kinematicsSystem.m_entities.size();
-        chunkMap[component.chunk].push_back(id);
-        return kinematicsSystem.registerEntity(component);
+    // removes (deletes) an entity from all systems
+    // maintains indirection table integrity for cache performance (does not reuse entityIDs)
+    void unregisterEntity(EntityID id) {
+        size_t idx = entityIndexTable[id];
+        size_t lastIdx = kinematicsSystem.m_entities.size() - 1;
+        EntityID lastEntity = indexToEntity[lastIdx];
+
+        // swap components
+        std::swap(kinematicsSystem.m_entities[idx], kinematicsSystem.m_entities[lastIdx]);
+        std::swap(animationSystem.m_entities[idx], animationSystem.m_entities[lastIdx]);
+        std::swap(renderSystem.m_entities[idx], renderSystem.m_entities[lastIdx]);
+        std::swap(colliderSystem.m_entities[idx], colliderSystem.m_entities[lastIdx]);
+
+        // fix indirection table
+        entityIndexTable[lastEntity] = idx;
+        indexToEntity[idx] = lastEntity;
+
+        kinematicsSystem.m_entities.pop_back();
+        animationSystem.m_entities.pop_back();
+        renderSystem.m_entities.pop_back();
+        colliderSystem.m_entities.pop_back();
+
+        indexToEntity.pop_back();
+        
+        // mark id as dead
+        entityIndexTable[id] = SIZE_MAX;
     }
 
-    Animations* registerComponent(Animations component) {
-        return animationSystem.registerEntity(component);
-    
+    // helpers to get components by ID, needs moved into systems
+    Kinematics& getKinematics(EntityID id) {
+        return kinematicsSystem.m_entities[static_cast<size_t>(id)];
     }
-    Texture2D* registerComponent(Texture2D component) {
-        return renderSystem.registerEntity(component);
+    CompoundCollider& getCollider(EntityID id) {
+        return colliderSystem.m_entities[static_cast<size_t>(id)];
+    }
+    Animations& getAnimations(EntityID id) {
+        return animationSystem.m_entities[static_cast<size_t>(id)];
+    }
+    Texture2D& getTexture(EntityID id) {
+        return renderSystem.m_entities[static_cast<size_t>(id)];
     }
 
-
+    // needs moved to render system, useful for debug
     void renderChunkBoundaries(Color color) {
         float cx = GetScreenWidth();
         float cy = GetScreenHeight();
@@ -195,18 +257,21 @@ namespace Core {
         int hy = cam.chunk.y + GetScreenHeight() / CHUNK_SIZE + 3;
         // std::cout << "Rendering chunk bounds from (" << sx << ", " << sy << ") with size (" << hx << ", " << hy << ")\n";
 
+        // vertical lines
         for (int x = cam.chunk.x; x < hx; x++) {
-            DrawLine((int)(x * CHUNK_SIZE - (cam.chunk.x *CHUNK_SIZE + cam.localPosition.x)), (int)((cam.chunk.y) * CHUNK_SIZE - (cam.chunk.y * CHUNK_SIZE + cam.localPosition.y)),
-                     (int)(x * CHUNK_SIZE - (cam.chunk.x *CHUNK_SIZE + cam.localPosition.x)), (int)((hy) * CHUNK_SIZE - (cam.chunk.y * CHUNK_SIZE +  cam.localPosition.y)), color);
+            DrawLine((int)((x- cam.chunk.x)  * CHUNK_SIZE - cam.localPosition.x), (int)(0),
+                     (int)((x- cam.chunk.x)  * CHUNK_SIZE - cam.localPosition.x), (int)(cy), color);
         }
 
+        // horizontal lines
         for (int y = cam.chunk.y; y < hy; y++) {
-            DrawLine((int)((cam.chunk.x) * CHUNK_SIZE - (cam.chunk.x *CHUNK_SIZE + cam.localPosition.x)), (int)(y * CHUNK_SIZE - (cam.chunk.y * CHUNK_SIZE + cam.localPosition.y)),
-                     (int)((hx) * CHUNK_SIZE - (cam.chunk.x *CHUNK_SIZE + cam.localPosition.x)), (int)(y * CHUNK_SIZE - (cam.chunk.y * CHUNK_SIZE + cam.localPosition.y)), color);
+            DrawLine((int)(0), (int)((y - cam.chunk.y) * CHUNK_SIZE - cam.localPosition.y),
+                     (int)(cx), (int)((y - cam.chunk.y) * CHUNK_SIZE - cam.localPosition.y), color);
         }
 
     }
 
+    // deconstructor
     void unloadAll() {
         colliderSystem.~ColliderSystem();
         kinematicsSystem.~KinematicsSystem();

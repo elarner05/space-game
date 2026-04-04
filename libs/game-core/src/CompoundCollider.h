@@ -2,11 +2,11 @@
 #include "raylib.h"
 #include "gjk.h"
 
-constexpr unsigned char MAX_COLLIDERS = 5;
+constexpr unsigned char MAX_COLLIDERS = 6;
 
 class CompoundCollider {
 public:
-	Collider* colliders;
+	Collider colliders[MAX_COLLIDERS];
 	int colliderCount;
 	float rotation;
 	bool needsRotationUpdate;

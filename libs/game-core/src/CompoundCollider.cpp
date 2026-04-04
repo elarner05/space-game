@@ -35,33 +35,34 @@ bool updateBounds(Collider& col)
 }
 
 CompoundCollider::CompoundCollider()
-    :colliders{nullptr}, colliderCount(0), rotation(0.f), needsRotationUpdate(false)
+    :colliders{}, colliderCount(0), rotation(0.f), needsRotationUpdate(false)
 {
-    colliders = new Collider[MAX_COLLIDERS]{ 0 };
+    
 }
 
 CompoundCollider::CompoundCollider(const char* filepath)
-    :colliders{ nullptr }, colliderCount(0), rotation(0.f), needsRotationUpdate(false)
+    :colliders{  }, colliderCount(0), rotation(0.f), needsRotationUpdate(false)
 {
-    colliders = new Collider[MAX_COLLIDERS]{ 0 };
     loadColliders(filepath);
 }
 CompoundCollider::CompoundCollider(const CompoundCollider& other)
-    :colliders{ nullptr }, colliderCount(0), rotation(0.f), needsRotationUpdate(false)
+    :colliders{ }, colliderCount(0), rotation(0.f), needsRotationUpdate(false)
 {
-    colliders = new Collider[MAX_COLLIDERS]{ 0 };
     colliderCount = other.colliderCount;
     for (int i = 0; i < other.colliderCount; ++i)
     {
-        // copy collider
         memcpy(&colliders[i], &other.colliders[i], sizeof(Collider));
     }
 }
 
 CompoundCollider::CompoundCollider(CompoundCollider&& other) noexcept
-    : colliders(other.colliders), colliderCount(other.colliderCount), rotation(other.rotation), needsRotationUpdate(other.needsRotationUpdate)
+    : colliders(), colliderCount(other.colliderCount), rotation(other.rotation), needsRotationUpdate(other.needsRotationUpdate)
 {
-    other.colliders = nullptr;
+    for (int i = 0; i < other.colliderCount; ++i)
+    {
+        memcpy(&colliders[i], &other.colliders[i], sizeof(Collider));
+        other.colliders[i] = {0};
+    }
     other.colliderCount = 0;
     other.rotation = 0.f;
     other.needsRotationUpdate = false;
@@ -71,8 +72,10 @@ CompoundCollider& CompoundCollider::operator=(const CompoundCollider& other)
 {
     if (this != &other)
     {
-        delete[] colliders;
-        colliders = new Collider[MAX_COLLIDERS]{ 0 };
+        for (int i = 0; i < colliderCount; ++i)
+        {
+            colliders[i] = {0};
+        }
         colliderCount = other.colliderCount;
         for (int i = 0; i < other.colliderCount; ++i)
         {
@@ -88,12 +91,17 @@ CompoundCollider& CompoundCollider::operator=(CompoundCollider&& other) noexcept
 {
     if (this != &other)
     {
-        delete[] colliders;
-        colliders = other.colliders;
+        for (int i = 0; i < other.colliderCount; ++i)
+        {
+            memcpy(&colliders[i], &other.colliders[i], sizeof(Collider));
+        }
         colliderCount = other.colliderCount;
         rotation = other.rotation;
         needsRotationUpdate = other.needsRotationUpdate;
-        other.colliders = nullptr;
+        for (int i = 0; i < other.colliderCount; ++i)
+        {
+            other.colliders[i] = {0};
+        }
         other.colliderCount = 0;
         other.rotation = 0.f;
         other.needsRotationUpdate = false;
@@ -103,7 +111,7 @@ CompoundCollider& CompoundCollider::operator=(CompoundCollider&& other) noexcept
 
 CompoundCollider::~CompoundCollider()
 {
-    delete[] colliders;
+    
 }
 
 

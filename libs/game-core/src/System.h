@@ -1,14 +1,14 @@
 #pragma once
-
-#include <deque>
+#include "EntityID.h"
+#include <vector>
 
 template<typename T>
 class System {
 public:
-    std::deque<T> m_entities;
+    std::vector<T> m_entities;
 
 public:
 
     virtual void update(float dt) = 0;
-    virtual T* registerEntity(T entity) = 0;
+    virtual EntityID registerEntity(T entity) = 0;
 };

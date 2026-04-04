@@ -11,8 +11,8 @@ void RenderSystem::update(float dt)
     // doesn't have a valid update
 }
 
-Texture2D* RenderSystem::registerEntity(Texture2D entity)
+EntityID RenderSystem::registerEntity(Texture2D entity)
 {
     m_entities.push_back(entity);    
-    return &m_entities.back();
+    return EntityID{static_cast<u_int32_t>(m_entities.size() - 1)};
 }

@@ -14,10 +14,12 @@ struct animation {
 
 class Animations {
 public:
-	Animations() = delete;
+	Animations();
 	Animations(const char* filepath);
 	Animations(const Animations& other);
 	~Animations();
+
+	bool loadAnimations(const char* filepath);
 
 	void switchAnimation(std::string to);
 	void changeAnimation(std::string to);

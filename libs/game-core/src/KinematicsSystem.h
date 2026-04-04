@@ -1,6 +1,7 @@
 #pragma once
 #include "System.h"
 #include "Kinematics.h"
+#include "EntityID.h"
 
 class KinematicsSystem : public System<Kinematics> {
 public:
@@ -8,7 +9,6 @@ public:
     ~KinematicsSystem();
 
     void update(float dt) override;
-    Kinematics* registerEntity(Kinematics entity) override;
+    EntityID registerEntity(Kinematics entity) override;
 
-    std::deque<Vector2> getPositions() const;
 };

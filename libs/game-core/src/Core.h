@@ -1,5 +1,6 @@
 #pragma once
 
+// need to move as many imports to the cpp as possible for encapsulation
 #include "raylib.h"
 #include "Animation.h"
 #include "Kinematics.h"
@@ -17,7 +18,7 @@
 
 #include "TextureManager.h"
 #include "GameCamera.h"
-using EntityID = size_t;
+#include "EntityID.h"
 namespace Core {
     extern GameCamera camera;
     extern robin_hood::unordered_map<ChunkCoord, std::vector<EntityID>> chunkMap;
@@ -27,12 +28,14 @@ namespace Core {
     void update(float dt);
     void draw();
     void processCollisions(float dt);
-    // bool handleCollision(Kinematics& kinA, Kinematics& kinB, CompoundCollider& colA, CompoundCollider& colB);
 
-    CompoundCollider* registerComponent(CompoundCollider component);
-    Kinematics* registerComponent(Kinematics component);
-    Animations* registerComponent(Animations component);
-    Texture2D* registerComponent(Texture2D component);
+    EntityID registerEntity(Kinematics kin, CompoundCollider col, Animations anim, Texture2D tex);
+    void unregisterEntity(EntityID id);
+
+    Kinematics& getKinematics(EntityID id);
+    CompoundCollider& getCollider(EntityID id);
+    Animations& getAnimations(EntityID id);
+    Texture2D& getTexture(EntityID id);
     
     void renderChunkBoundaries(Color color = GRAY);
 

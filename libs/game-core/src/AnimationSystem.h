@@ -1,6 +1,7 @@
 #pragma once
 #include "System.h"
 #include "Animation.h"
+#include "EntityID.h"
 
 class AnimationSystem : public System<Animations> {
 public:
@@ -9,5 +10,5 @@ public:
 
 
     void update(float dt) override;
-    Animations* registerEntity(Animations entity) override;
+    EntityID registerEntity(Animations entity) override;
 };

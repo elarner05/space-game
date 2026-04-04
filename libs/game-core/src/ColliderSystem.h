@@ -3,17 +3,17 @@
 #include "CompoundCollider.h"
 #include "raymath.h"
 #include "raylib.h"  // for TraceLog
-#include <deque>
+#include <vector>
 
 class ColliderSystem : public System<CompoundCollider> {
 protected:
-    std::deque<CompoundCollider> m_original_entities;
+    std::vector<CompoundCollider> m_original_entities;
 public:
     ColliderSystem();
     ~ColliderSystem();
 
     void update(float dt) override;
-    CompoundCollider* registerEntity(CompoundCollider entity) override;
+    EntityID registerEntity(CompoundCollider entity) override;
 
     bool checkNeedsRotationUpdate();
     void applyRotations();

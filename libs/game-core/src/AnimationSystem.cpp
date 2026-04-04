@@ -1,5 +1,4 @@
 #include "AnimationSystem.h"
-
 #include <cassert>
 
 AnimationSystem::AnimationSystem() = default;
@@ -13,8 +12,8 @@ void AnimationSystem::update(float dt)
     }
 }
 
-Animations* AnimationSystem::registerEntity(Animations entity)
+EntityID AnimationSystem::registerEntity(Animations entity)
 {
     m_entities.push_back(Animations{std::move(entity)});    
-    return &m_entities.back();
+    return EntityID{static_cast<uint32_t>(m_entities.size() - 1)};
 }

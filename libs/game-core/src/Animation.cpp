@@ -3,8 +3,14 @@
 #include <assert.h>
 #include <iostream>
 
-Animations::Animations(const char* filepath) {
+Animations::Animations() 
+	: animations(), dimensions(), origin(), currentAnimation(), nextAnimation(), frame(0), tp(0.f), end(false) {}
 
+Animations::Animations(const char* filepath) {
+	loadAnimations(filepath);
+}
+
+bool Animations::loadAnimations(const char* filepath) {
 	std::ifstream fin(filepath);
 
 	assert(fin && "Failed to open animation file");
@@ -34,7 +40,7 @@ Animations::Animations(const char* filepath) {
 	frame = 0;
 	tp = 0.f; // time passed
 	end = false;
-
+	return true;
 }
 
 Animations::Animations(const Animations& other) : animations(other.animations), dimensions(other.dimensions), origin(other.origin), currentAnimation(other.currentAnimation), nextAnimation(other.nextAnimation), frame(other.frame), tp(other.tp), end(other.end) {

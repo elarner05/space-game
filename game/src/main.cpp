@@ -4,17 +4,18 @@
 #include "../include/game.h"
 #include "game-core.h"
 #include <iostream>
+#include <vector>
 
 
 void GameInit()
 {
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE);
-    InitWindow(InitialWidth, InitialHeight, "Example");
+    InitWindow(InitialWidth, InitialHeight, "space-game");
     SetTargetFPS(60);
 
     Core::Debug::showHitboxes() = false;
     Core::Debug::showEntityOrigins() = false;
-    Core::Debug::showVelocities() = false;
+    Core::Debug::showVelocities() = true;
     Core::Debug::showChunkBounds() = true;
 
     Core::init();
@@ -41,19 +42,23 @@ int main()
 {
     GameInit();
 
-    Spaceship s1{ "data/spaceship-1.png", "data/spaceship-1.meta", "data/spaceship-1-collider.meta"};
-    Core::camera.setFollow(s1.kinematics);
+    EntityID s1 = Core::registerEntity(EntityTypes::Spaceship);
+    Core::camera.setFollow(s1);
 
-    Asteroid asts[] = {
-        Asteroid(100.f, 200.f, 1, 1, "data/asteroid.png", "data/asteroid.meta", "data/asteroid-collider.meta"),
-        Asteroid(150.f, 250.f, 1, 1, "data/asteroid.png", "data/asteroid.meta", "data/asteroid-collider.meta"),
-        Asteroid(200.f, 300.f, 1, 1, "data/asteroid.png", "data/asteroid.meta", "data/asteroid-collider.meta"),
-        Asteroid(250.f, 350.f, 1, 1, "data/asteroid.png", "data/asteroid.meta", "data/asteroid-collider.meta"),
-        Asteroid(300.f, 400.f, 1, 1, "data/asteroid.png", "data/asteroid.meta", "data/asteroid-collider.meta")
-    };
+    std::vector<EntityID> asts;
+    asts.reserve(200);
 
-    for (size_t i = 0; i < 5; i++) {
-        asts[i].kinematics->angularVelocity = (i%2 == 0? -1:1)*0.1f;
+    for (int i = 0; i < 200; i++) {
+        float x = 100.f + (i % 10) * 100.f;
+        float y = 200.f + (i / 10) * 100.f;
+        float vx = (i % 2 == 0) ? 0.f : -0.f;
+        float vy = (i % 3 == 0) ? 0.f : -0.f;
+
+        asts.emplace_back(Core::registerEntity(EntityTypes::Asteroid, Kinematics{{0, 0}, Vector2{x, y}, Vector2{vx, vy}, 1.f, 0.f, 0.f, 0.f}));
+    }
+
+    for (size_t i = 0; i < asts.size(); i++) {
+        Core::getKinematics(asts[i]).angularVelocity = ((i % 2) == 0 ? -1.f : 1.f) * 0.1f;
     }
 
     float t = 0.0f;
@@ -69,25 +74,20 @@ int main()
             
 
             if (IsKeyDown(KEY_W)) {
-                if (!(s1.animations->currentAnimation == std::string("engine-start") || s1.animations->currentAnimation == std::string("engine-on"))) {
-                    s1.animations->switchAnimation(std::string("engine-start"));
-                    s1.animations->changeAnimation(std::string("engine-on"));
+                if (!(Core::getAnimations(s1).currentAnimation == std::string("engine-start") || Core::getAnimations(s1).currentAnimation == std::string("engine-on"))) {
+                    Core::getAnimations(s1).switchAnimation(std::string("engine-start"));
+                    Core::getAnimations(s1).changeAnimation(std::string("engine-on"));
                 }
-                s1.kinematics->accelerate(t, 50.f);
+                Core::getKinematics(s1).accelerate(t, 50.f);
             }
             else {
-                if (s1.animations->currentAnimation == std::string("engine-on") || s1.animations->currentAnimation == std::string("engine-start")) {
-                    s1.animations->switchAnimation(std::string("idle"));
+                if (Core::getAnimations(s1).currentAnimation == std::string("engine-on") || Core::getAnimations(s1).currentAnimation == std::string("engine-start")) {
+                    Core::getAnimations(s1).switchAnimation(std::string("idle"));
                 }
             }
 
             if (IsKeyPressed(KEY_C)) {
                 Core::Debug::showHitboxes() = !Core::Debug::showHitboxes();
-            }
-
-            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                Vector2 mouse = GetMousePosition();
-                s1.accelerateRotation(mouse, t, 10.f);
             }
             
             if (GetScreenHeight()!= y || GetScreenWidth() != x) {
@@ -96,10 +96,6 @@ int main()
                 std::cout << "New screen size: " << x << "x" << y << std::endl;
             }
 
-            s1.update(t);
-            for (auto& ast : asts) {
-                ast.update(t);
-            }
             Core::update(t);
 
             t = 0.f;
