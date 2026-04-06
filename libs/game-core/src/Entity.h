@@ -2,6 +2,17 @@
 #include "Kinematics.h"
 #include "EntityID.h"
 
+enum class EntityTag : uint8_t
+{
+    Spaceship = 0,
+    Asteroid
+};
+
+enum class EntityFlags : uint8_t {
+    None        = 0,
+    Persistent  = 1 << 0,  // never saved to chunk files
+    // could have things such as static, noCollision etc
+};
 
 struct EntityType {
     const char* textureFilepath;
@@ -23,6 +34,8 @@ namespace EntityTypes {
 };
 
 namespace Core {
-    EntityID registerEntity(const EntityType type);
-    EntityID registerEntity(const EntityType type, Kinematics kin);
+    namespace EntityFactory {
+        EntityID spawn(const EntityTag tag, EntityFlags flags = EntityFlags::None);
+        EntityID spawn(const EntityTag tag, Kinematics kin, EntityFlags flags = EntityFlags::None);
+    }
 }

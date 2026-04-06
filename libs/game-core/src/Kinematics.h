@@ -14,16 +14,7 @@ constexpr int   CHUNK_SIZE = 1024; // world units per chunk side
 constexpr float CHUNK_SIZEF = static_cast<float>(CHUNK_SIZE);
 
 
-namespace robin_hood {
-    template<>
-    struct hash<ChunkCoord> {
-        size_t operator()(const ChunkCoord& c) const noexcept {
-            size_t h1 = hash<int>{}(c.x);
-            size_t h2 = hash<int>{}(c.y);
-            return h1 ^ (h2 * 2654435761u);
-        }
-    };
-}
+
 
 struct Kinematics {
     ChunkCoord chunk;

@@ -1,19 +1,19 @@
 #include "TextureManager.h"
-#include <map>
+#include "robin_hood.h"
 
 namespace TextureManager {
-	std::map<const char*, Texture2D> textures;
+	robin_hood::unordered_map<std::string, Texture2D> textures;
 
-	Texture2D& loadTexture(const char* filepath) {
+	Texture2D& loadTexture(std::string filepath) {
 		auto itr = textures.find(filepath);
 		if (itr != textures.end()) {
 			return itr->second;
 		}
-		Texture2D tex = LoadTexture(filepath);
+		Texture2D tex = LoadTexture(filepath.c_str());
 		textures.insert({ filepath, tex });
 		return textures[filepath];
 	}
-	void unloadTexture(const char *filepath) {
+	void unloadTexture(std::string filepath) {
 		auto itr = textures.find(filepath);
 		if (itr != textures.end()) {
 			UnloadTexture(itr->second);

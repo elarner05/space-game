@@ -60,10 +60,8 @@ void ColliderSystem::update(float dt)
     }
 }
 
-EntityID ColliderSystem::registerEntity(CompoundCollider entity)
+void ColliderSystem::registerEntity(CompoundCollider entity)
 {
     m_original_entities.push_back(CompoundCollider{(entity)}); 
-    m_entities.push_back(CompoundCollider{(entity)}); 
-    
-    return EntityID{static_cast<uint32_t>(m_entities.size() - 1)};
+    m_entities.push_back(CompoundCollider{(entity)});
 }

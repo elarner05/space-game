@@ -6,7 +6,7 @@
 
 GameCamera::GameCamera() : kinematics(), follow(EntityID{0}) {
 }
-GameCamera::GameCamera(ChunkCoord c, Vector2 pos) : kinematics{c, pos, {0, 0}, 0, 0, 0} ,follow(EntityID{0}) {
+GameCamera::GameCamera(ChunkCoord c, Vector2 pos) : kinematics{c, pos, {0, 0}, 0, 0, 0} ,follow(EntityID{0}), currentChunk(c) {
 }
 
 GameCamera::~GameCamera() {
@@ -15,6 +15,7 @@ GameCamera::~GameCamera() {
 void GameCamera::updatePosition(float dt) {
     // could have some nice follow the object code here
     // for now just directly set to follow target
+    currentChunk = Core::getKinematics(follow).chunk;
 
     kinematics.chunk = Core::getKinematics(follow).chunk;
     kinematics.localPosition = Core::getKinematics(follow).localPosition;

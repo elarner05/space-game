@@ -10,5 +10,5 @@ public:
 public:
 
     virtual void update(float dt) = 0;
-    virtual EntityID registerEntity(T entity) = 0;
+    virtual void registerEntity(T entity) = 0;
 };

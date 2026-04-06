@@ -3,7 +3,7 @@
 #include <string>
 
 namespace TextureManager {
-	Texture2D& loadTexture(const char* filepath);
-	void unloadTexture(const char* filepath);
+	Texture2D& loadTexture(std::string filepath);
+	void unloadTexture(std::string filepath);
 	void unloadAllTextures();
 }

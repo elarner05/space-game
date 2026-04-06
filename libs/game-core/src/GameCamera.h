@@ -4,7 +4,10 @@
 #include "EntityID.h"
 class GameCamera {
 public:
-    Kinematics kinematics; // camera has a kinematic component, can be accelerated etc
+    Kinematics kinematics;  // camera has a kinematic component, can be accelerated etc
+                            // stores upper left hand corner position
+
+    ChunkCoord currentChunk;// stores chunk of middle of the screen (used for loading etc)
     EntityID follow;
 
     constexpr static int simulationDistance = 3;

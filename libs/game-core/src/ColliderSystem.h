@@ -13,7 +13,7 @@ public:
     ~ColliderSystem();
 
     void update(float dt) override;
-    EntityID registerEntity(CompoundCollider entity) override;
+    void registerEntity(CompoundCollider entity) override;
 
     bool checkNeedsRotationUpdate();
     void applyRotations();

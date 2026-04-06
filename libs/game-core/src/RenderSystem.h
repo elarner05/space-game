@@ -9,5 +9,5 @@ public:
 
 
     void update(float dt) override;
-    EntityID registerEntity(Texture2D entity) override;
+    void registerEntity(Texture2D entity) override;
 };

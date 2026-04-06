@@ -10,5 +10,5 @@ public:
 
 
     void update(float dt) override;
-    EntityID registerEntity(Animations entity) override;
+    void registerEntity(Animations entity) override;
 };

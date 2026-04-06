@@ -1,6 +1,10 @@
 #include "Core.h"
 #include "debug_flags.h"
 #include "InputHandler.h"
+#include "Entity.h"
+#include "ChunkLoader.h"
+
+#include <cassert>
 
 namespace Core {
     AnimationSystem animationSystem;
@@ -9,9 +13,16 @@ namespace Core {
     RenderSystem renderSystem;
     GameCamera camera;
 
+    ChunkLoader chunkLoader{"saves/"};
+    SaveManager saveManager{"saves/"};
+
     robin_hood::unordered_map<ChunkCoord, std::vector<EntityID>> chunkMap;
     std::vector<size_t> entityIndexTable;
     std::vector<EntityID> indexToEntity;
+    std::vector<EntityTag> entityTagTable;
+    std::vector<EntityFlags> entityFlagTable;
+
+    uint32_t nextEntityID = 0;
 
     void init() {
         constexpr size_t expectedEntities = 1024; // reserve more memory as the number of entities grows, better allocation startegy
@@ -22,13 +33,16 @@ namespace Core {
         renderSystem.m_entities.reserve(expectedEntities);
         indexToEntity.reserve(expectedEntities);
         entityIndexTable.reserve(expectedEntities);
+        entityTagTable.reserve(expectedEntities);
+        entityFlagTable.reserve(expectedEntities);
     }
 
     void update(float dt) {
-        Input::handleSpaceshipInput(EntityID{0}, dt); // for now just control the first entity, should be fine for testing
         
         kinematicsSystem.update(dt);
         colliderSystem.update(dt);
+
+        chunkLoader.update();
 
         processCollisions(dt);
 
@@ -131,14 +145,18 @@ namespace Core {
     // helper to call by ID instead of components
     void handleCollision(EntityID a, EntityID b) {
         handleCollision(
-            kinematicsSystem.m_entities[static_cast<size_t>(a)], kinematicsSystem.m_entities[static_cast<size_t>(b)],
-            colliderSystem.m_entities[static_cast<size_t>(a)],   colliderSystem.m_entities[static_cast<size_t>(b)]
+            kinematicsSystem.m_entities[entityIndexTable[a.value]],
+            kinematicsSystem.m_entities[entityIndexTable[b.value]],
+            colliderSystem.m_entities[entityIndexTable[a.value]],
+            colliderSystem.m_entities[entityIndexTable[b.value]]
         );
     }
 
+
+
     // needs refactored into system
     void processCollisions(float dt) {
-        ChunkCoord camChunk = camera.kinematics.chunk;
+        ChunkCoord camChunk = camera.currentChunk;
         int simDist = GameCamera::simulationDistance;
 
         // track tested pairs to avoid duplicates across chunk neighbours
@@ -146,7 +164,7 @@ namespace Core {
 
         auto pairKey = [](EntityID a, EntityID b) -> uint64_t {
             if (a > b) std::swap(a, b);
-            return ((uint64_t)a << 32) | (uint64_t)b;
+            return ((uint64_t)a.value << 32) | (uint64_t)b.value;
         };
 
         for (int dx = -simDist; dx <= simDist; dx++) {
@@ -185,28 +203,55 @@ namespace Core {
             }
         }
     }
-        
-    
  
     // registers all the components of an entity to the system
-    EntityID registerEntity(Kinematics kin, CompoundCollider col, Animations anim, Texture2D tex) {
-        EntityID id = EntityID{static_cast<u_int32_t>(kinematicsSystem.m_entities.size())};
+    EntityID registerEntity(EntityTag tag, Kinematics kin, CompoundCollider col, Animations anim, Texture2D tex, EntityFlags flags) {
+        
+        EntityID id = EntityID{nextEntityID++};
         
         kinematicsSystem.registerEntity(kin);
         colliderSystem.registerEntity(col);
         animationSystem.registerEntity(anim);
         renderSystem.registerEntity(tex);
+        entityTagTable.push_back(tag);
+        entityFlagTable.push_back(flags);
         
+        // entityIndexTable is ID-indexed, must be large enough to hold id.value
+        if (id.value >= entityIndexTable.size())
+            entityIndexTable.resize(id.value + 1, SIZE_MAX);
+        
+        // current array slot is always the last pushed index
+        entityIndexTable[id.value] = kinematicsSystem.m_entities.size() - 1;
+        indexToEntity.push_back(id);
         chunkMap[kin.chunk].push_back(id);
-
-        kinematicsSystem.m_entities.back().computeAndSetBoundingRadius(colliderSystem.m_entities.back()); // needed for epa stage
+        kinematicsSystem.m_entities.back().computeAndSetBoundingRadius(colliderSystem.m_entities.back());
         return id;
     }
 
     // removes (deletes) an entity from all systems
     // maintains indirection table integrity for cache performance (does not reuse entityIDs)
     void unregisterEntity(EntityID id) {
-        size_t idx = entityIndexTable[id];
+        printf("unregisterEntity called: id=%u, entityIndexTable.size=%zu, entityTagTable.size=%zu, indexToEntity.size=%zu, kinematics.size=%zu\n",
+        id.value, entityIndexTable.size(), entityTagTable.size(), indexToEntity.size(), kinematicsSystem.m_entities.size());
+
+        assert(id.isValid() && "unregistering invalid ID");
+        assert(id.value < entityIndexTable.size() && "ID never registered");
+        assert(entityIndexTable[id.value] != SIZE_MAX && "double unregister");
+        assert(entityFlagTable.size() == entityTagTable.size() && "flag/tag tables desynced");
+
+        size_t idx = entityIndexTable[id.value];
+        
+        printf("  idx=%zu, lastIdx=%zu\n", idx, kinematicsSystem.m_entities.size() - 1);
+        
+        assert(idx < kinematicsSystem.m_entities.size() && "idx out of range");
+        assert(idx < entityTagTable.size() && "entityTagTable out of range");
+        assert(indexToEntity.size() == kinematicsSystem.m_entities.size() && "indexToEntity desynced");
+
+        // remove from chunkMap first, before anything moves
+        ChunkCoord chunk = kinematicsSystem.m_entities[idx].chunk;
+        auto& list = chunkMap[chunk];
+        list.erase(std::remove(list.begin(), list.end(), id), list.end());
+
         size_t lastIdx = kinematicsSystem.m_entities.size() - 1;
         EntityID lastEntity = indexToEntity[lastIdx];
 
@@ -215,34 +260,41 @@ namespace Core {
         std::swap(animationSystem.m_entities[idx], animationSystem.m_entities[lastIdx]);
         std::swap(renderSystem.m_entities[idx], renderSystem.m_entities[lastIdx]);
         std::swap(colliderSystem.m_entities[idx], colliderSystem.m_entities[lastIdx]);
-
+        std::swap(entityTagTable[idx], entityTagTable[lastIdx]);
+        std::swap(entityFlagTable[idx], entityFlagTable[lastIdx]);
         // fix indirection table
-        entityIndexTable[lastEntity] = idx;
-        indexToEntity[idx] = lastEntity;
+        if (id != lastEntity) { // move last entity to deleted slot (if not deleting the lasat entity)
+            entityIndexTable[lastEntity.value] = idx;
+            indexToEntity[idx] = lastEntity;
+        }
+        // mark id as dead
+        entityIndexTable[id.value] = SIZE_MAX;
 
         kinematicsSystem.m_entities.pop_back();
         animationSystem.m_entities.pop_back();
         renderSystem.m_entities.pop_back();
         colliderSystem.m_entities.pop_back();
-
+        entityTagTable.pop_back();
+        entityFlagTable.pop_back();
         indexToEntity.pop_back();
-        
-        // mark id as dead
-        entityIndexTable[id] = SIZE_MAX;
+
+       
+        // entityIndexTable.pop_back(); -- don't pop back since indexed by ID, only needs marked invalid
+        // will grow indefinitely but should be fine for now
     }
 
     // helpers to get components by ID, needs moved into systems
     Kinematics& getKinematics(EntityID id) {
-        return kinematicsSystem.m_entities[static_cast<size_t>(id)];
+        return kinematicsSystem.m_entities[entityIndexTable[id.value]];
     }
     CompoundCollider& getCollider(EntityID id) {
-        return colliderSystem.m_entities[static_cast<size_t>(id)];
+        return colliderSystem.m_entities[entityIndexTable[id.value]];
     }
     Animations& getAnimations(EntityID id) {
-        return animationSystem.m_entities[static_cast<size_t>(id)];
+        return animationSystem.m_entities[entityIndexTable[id.value]];
     }
     Texture2D& getTexture(EntityID id) {
-        return renderSystem.m_entities[static_cast<size_t>(id)];
+        return renderSystem.m_entities[entityIndexTable[id.value]];
     }
 
     // needs moved to render system, useful for debug
@@ -273,10 +325,8 @@ namespace Core {
 
     // deconstructor
     void unloadAll() {
-        colliderSystem.~ColliderSystem();
-        kinematicsSystem.~KinematicsSystem();
-        animationSystem.~AnimationSystem();
-
+        chunkLoader.saveAll();
+        
         TextureManager::unloadAllTextures();
     }
     

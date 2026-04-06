@@ -12,8 +12,7 @@ void AnimationSystem::update(float dt)
     }
 }
 
-EntityID AnimationSystem::registerEntity(Animations entity)
+void AnimationSystem::registerEntity(Animations entity)
 {
-    m_entities.push_back(Animations{std::move(entity)});    
-    return EntityID{static_cast<uint32_t>(m_entities.size() - 1)};
+    m_entities.push_back(Animations{std::move(entity)});
 }

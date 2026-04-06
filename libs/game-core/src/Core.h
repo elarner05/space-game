@@ -19,9 +19,26 @@
 #include "TextureManager.h"
 #include "GameCamera.h"
 #include "EntityID.h"
+#include "Entity.h"
+#include "ChunkLoader.h"
+#include "SaveManager.h"
+
 namespace Core {
     extern GameCamera camera;
     extern robin_hood::unordered_map<ChunkCoord, std::vector<EntityID>> chunkMap;
+    extern std::vector<size_t> entityIndexTable;
+    extern std::vector<EntityID> indexToEntity;
+    extern std::vector<EntityTag> entityTagTable;
+    extern std::vector<EntityFlags> entityFlagTable;
+
+    extern AnimationSystem animationSystem;
+    extern KinematicsSystem kinematicsSystem;
+    extern ColliderSystem colliderSystem;
+    extern RenderSystem renderSystem;
+
+    extern ChunkLoader chunkLoader;
+    extern SaveManager saveManager;
+
 
     void init();
 
@@ -29,7 +46,7 @@ namespace Core {
     void draw();
     void processCollisions(float dt);
 
-    EntityID registerEntity(Kinematics kin, CompoundCollider col, Animations anim, Texture2D tex);
+    EntityID registerEntity(EntityTag tag, Kinematics kin, CompoundCollider col, Animations anim, Texture2D tex, EntityFlags flags=EntityFlags::None);
     void unregisterEntity(EntityID id);
 
     Kinematics& getKinematics(EntityID id);

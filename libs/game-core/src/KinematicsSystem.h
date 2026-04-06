@@ -9,6 +9,6 @@ public:
     ~KinematicsSystem();
 
     void update(float dt) override;
-    EntityID registerEntity(Kinematics entity) override;
+    void registerEntity(Kinematics entity) override;
 
 };
