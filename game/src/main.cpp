@@ -17,6 +17,7 @@ void GameInit()
     Core::Debug::showEntityOrigins() = false;
     Core::Debug::showVelocities() = true;
     Core::Debug::showChunkBounds() = true;
+    Core::Debug::showCameraPosition() = true;
 
     Core::init();
 }

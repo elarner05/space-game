@@ -4,4 +4,5 @@ namespace Core::Debug {
     bool& showEntityOrigins();
     bool& showVelocities();
     bool& showChunkBounds();
+    bool& showCameraPosition();
 }

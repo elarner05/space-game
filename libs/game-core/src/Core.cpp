@@ -94,6 +94,17 @@ namespace Core {
             }
         }
 
+        if ( Debug::showCameraPosition() ) {
+            std::string text = "Chunk: " + std::to_string(camera.currentChunk.x) + " " + std::to_string(camera.currentChunk.y);
+
+            int fontSize = 20;
+            int padding = 10;
+
+            int x = GetScreenWidth() - MeasureText(text.c_str(), fontSize) - padding;
+            int y = GetScreenHeight() - fontSize - padding;
+
+            DrawText(text.c_str(), x, y, fontSize, WHITE);
+        }
     }
 
     // collision handling, needs refactored into a proper system approach

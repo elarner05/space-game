@@ -19,4 +19,9 @@ namespace Core::Debug {
         static bool flag = false;
         return flag;
     }
+
+    bool& showCameraPosition() {
+        static bool flag = false;
+        return flag;
+    }
 }
