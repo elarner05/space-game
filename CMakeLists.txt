@@ -10,7 +10,7 @@ FetchContent_Declare(
     GIT_SHALLOW    TRUE
 )
 
-# Optional: tweak raylib build options before making it available
+# removes examples and games from raylib build
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_GAMES    OFF CACHE BOOL "" FORCE)
 
@@ -30,6 +30,7 @@ set_target_properties(space-game PROPERTIES
 add_subdirectory(libs/game-core)
 
 target_include_directories(space-game PRIVATE ${raylib_SOURCE_DIR}/src)
+target_include_directories(space-game PRIVATE libs/game-core/include)
 target_link_libraries(space-game PRIVATE game-core raylib)
 
 add_custom_command(TARGET space-game POST_BUILD

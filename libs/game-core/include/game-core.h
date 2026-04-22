@@ -1,8 +1,8 @@
 
 #pragma once
 
-#include "../src/TextureManager.h"
-#include "../src/Core.h"
-#include "../src/Entity.h"
-#include "../src/debug_flags.h"
-#include "../src/InputHandler.h"
+#include "../src/utils/TextureManager.h"
+#include "../src/core/Core.h"
+#include "../src/core/EntityFactory.h"
+#include "../src/utils/debug_flags.h"
+#include "../src/input/InputHandler.h"
