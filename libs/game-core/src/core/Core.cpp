@@ -1,8 +1,21 @@
 #include "core/Core.h"
+#include "core/CollisionProcessor.h"
+
 #include "utils/debug_flags.h"
+#include "utils/TextureManager.h"
+
 #include "input/InputHandler.h"
+
+#include "components/Animation.h"
+#include "components/Kinematics.h"
+#include "components/CompoundCollider.h"
 #include "components/EntityTypes.h"
+
 #include "world/ChunkLoader.h"
+
+#include "physics/gjk.h"
+#include "physics/epa.h"
+#include "utils/profiler.hpp"
 
 #include <cassert>
 // unhandled runtime assertion error, entityflags vector out of bounds operator[] access
@@ -40,61 +53,41 @@ namespace Core {
     }
 
     void update(float dt) {
-        
-        kinematicsSystem.update(dt);
-        colliderSystem.update(dt);
+        {
+            ZoneScopedN("kinematics");
+            kinematicsSystem.update(dt);
+        }
+        {
+            ZoneScopedN("collider_rotation");
+            colliderSystem.update(dt);
 
-        chunkLoader.update();
+        }
+        {
+            ZoneScopedN("chunk_loading");
+            chunkLoader.update();
+        }
 
-        processCollisions(dt);
+        {
+            ZoneScopedN("collision_processing");
+            processCollisions(dt);
+        }
+
 
         camera.updatePosition(dt);
-
-        animationSystem.update(dt);
+        {
+            ZoneScopedN("animation");
+            animationSystem.update(dt);
+        }
     }
 
-    // draw function for entities, may need moved to a render system style approach
+    // draw function
     void draw() {
+
         if ( Debug::showChunkBounds() ) {
             renderChunkBoundaries();
         }
 
-        for (size_t i = 0; i < animationSystem.m_entities.size(); ++i) {
-            Animations& anim = animationSystem.m_entities[i];
-            Kinematics& kin = kinematicsSystem.m_entities[i];
-            CompoundCollider& col = colliderSystem.m_entities[i];
-            Texture2D& tex = renderSystem.m_entities[i];
-
-            Vector2 screenPos = kin.localPositionRelativeTo(
-                camera.kinematics.chunk,
-                camera.kinematics.localPosition
-            );
-
-            DrawTexturePro(tex, anim.getSource(),
-                Rectangle{ screenPos.x, screenPos.y, anim.dimensions.x, anim.dimensions.y },
-                Vector2{ anim.origin.x, anim.origin.y },
-                (float)kin.rotation * RAD2DEG, RAYWHITE);
-
-
-            if (Debug::showHitboxes())
-                col.drawDebug(screenPos, RED);
-            if (Debug::showEntityOrigins())
-                DrawCircle(screenPos.x, screenPos.y, 2, RED);
-            if (Core::Debug::showVelocities()) {
-                Vector2 start = screenPos;
-                Vector2 end   = { start.x + kin.velocity.x, start.y + kin.velocity.y };
-                DrawLine((int)start.x, (int)start.y, (int)end.x, (int)end.y, BLUE);
-                Vector2 dir  = Vector2Normalize(Vector2Subtract(end, start));
-                Vector2 perp = { -dir.y, dir.x };
-                constexpr float HEAD_LENGTH = 8.f;
-                constexpr float HEAD_WIDTH  = 4.f;
-                Vector2 tip   = end;
-                Vector2 base  = Vector2Subtract(tip, Vector2Scale(dir, HEAD_LENGTH));
-                Vector2 left  = Vector2Add(base, Vector2Scale(perp, HEAD_WIDTH));
-                Vector2 right = Vector2Subtract(base, Vector2Scale(perp, HEAD_WIDTH));
-                DrawTriangle(tip, right, left, BLUE);
-            }
-        }
+        drawEntities();
 
         if ( Debug::showCameraPosition() ) {
             std::string text = "Chunk: " + std::to_string(camera.currentChunk.x) + " " + std::to_string(camera.currentChunk.y);
@@ -106,114 +99,6 @@ namespace Core {
             int y = GetScreenHeight() - fontSize - padding;
 
             DrawText(text.c_str(), x, y, fontSize, WHITE);
-        }
-    }
-
-    // collision handling, needs refactored into a proper system approach
-    bool handleCollision(Kinematics& kinA, Kinematics& kinB, CompoundCollider& colA, CompoundCollider& colB){
-        bool handled = false;
-        constexpr float elasticity = 1.f;
-
-        // Express both entities relative to the camera's position
-        Vector2 posA = kinA.localPositionRelativeTo(camera.kinematics.chunk, camera.kinematics.localPosition);
-        Vector2 posB = kinB.localPositionRelativeTo(camera.kinematics.chunk, camera.kinematics.localPosition);
-
-        for (int i = 0; i < colA.colliderCount; i++) {
-            for (int j = 0; j < colB.colliderCount; j++) {
-                if (!withinBounds(colA.colliders[i], posA, colB.colliders[j], posB))
-                    continue;
-
-                ContactManifold manifold = {};
-
-                if (colA.colliders[i].count == 0 && colB.colliders[j].count == 0) {
-                    // Circle-circle: bypass GJK/EPA
-                    const Collider& cA = colA.colliders[i];
-                    const Collider& cB = colB.colliders[j];
-                    Vector2 centerA = Vector2Add(posA, cA.offset);
-                    Vector2 centerB = Vector2Add(posB, cB.offset);
-                    Vector2 delta   = Vector2Subtract(centerA, centerB);
-                    float   dist    = Vector2Length(delta);
-                    manifold.normal  = (dist > 1e-6f) ? Vector2Normalize(delta) : Vector2{ 1.f, 0.f };
-                    manifold.depth   = (cA.radius + cB.radius) - dist;
-                    manifold.contact = Vector2Add(centerB, Vector2Scale(manifold.normal, cB.radius));
-                    manifold.valid   = manifold.depth > 0.f;
-                } else {
-                    // Polygon or mixed: GJK + EPA
-                    Vector2 simplex[3] = {};
-                    if (!gjk(colA.colliders[i], posA, colB.colliders[j], posB, simplex))
-                        continue;
-                    manifold = epa(colA.colliders[i], posA, colB.colliders[j], posB, simplex);
-                }
-
-                if (!manifold.valid) continue;
-
-                resolveCollision(manifold, &kinA, posA, &kinB, posB, elasticity);
-                positionalCorrection(manifold, &kinA, &kinB);
-                handled = true;
-            }
-        }
-        return handled;
-    }
-
-    // helper to call by ID instead of components
-    void handleCollision(EntityID a, EntityID b) {
-        handleCollision(
-            kinematicsSystem.m_entities[slots[a.index].arrayIndex],
-            kinematicsSystem.m_entities[slots[b.index].arrayIndex],
-            colliderSystem.m_entities[slots[a.index].arrayIndex],
-            colliderSystem.m_entities[slots[b.index].arrayIndex]
-        );
-    }
-
-
-
-    // needs refactored into system
-    void processCollisions(float dt) {
-        ChunkCoord camChunk = camera.currentChunk;
-        int simDist = GameCamera::simulationDistance;
-
-        // track tested pairs to avoid duplicates across chunk neighbours
-        robin_hood::unordered_set<uint64_t> testedPairs;
-
-        auto pairKey = [](EntityID a, EntityID b) -> uint64_t {
-            if (a > b) std::swap(a, b);
-            return ((uint64_t)a.index << 32) | (uint64_t)b.index;
-        };
-
-        for (int dx = -simDist; dx <= simDist; dx++) {
-            for (int dy = -simDist; dy <= simDist; dy++) {
-                ChunkCoord chunk = { camChunk.x + dx, camChunk.y + dy };
-                auto it = chunkMap.find(chunk);
-                if (it == chunkMap.end()) continue;
-
-                const std::vector<EntityID>& locals = it->second;
-
-                // test within this chunk
-                for (size_t i = 0; i < locals.size(); i++) {
-                    for (size_t j = i + 1; j < locals.size(); j++) {
-                        EntityID a = locals[i], b = locals[j];
-                        if (testedPairs.insert(pairKey(a, b)).second)
-                            handleCollision(a, b);
-                    }
-                }
-
-                // test against each neighbour chunk
-                for (int nx = -1; nx <= 1; nx++) {
-                    for (int ny = -1; ny <= 1; ny++) {
-                        if (nx == 0 && ny == 0) continue;
-                        ChunkCoord neighbour = { chunk.x + nx, chunk.y + ny };
-                        auto nit = chunkMap.find(neighbour);
-                        if (nit == chunkMap.end()) continue;
-
-                        for (EntityID a : locals) {
-                            for (EntityID b : nit->second) {
-                                if (testedPairs.insert(pairKey(a, b)).second)
-                                    handleCollision(a, b);
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
  
@@ -245,8 +130,8 @@ namespace Core {
         return id;
     }
 
-    // removes (deletes) an entity from all systems
-    // maintains indirection table integrity for cache performance (does not reuse entityIDs)
+    // removes (deletes) an entity from all systems, swaps with the last entity to avoid holes, invalidates ID and returns slot to pool
+    // could do with some cleanup
     void unregisterEntity(EntityID id) {
         assert(id.isValid() && "unregistering invalid ID");
         assert(id.index < slots.size() && "ID never registered");

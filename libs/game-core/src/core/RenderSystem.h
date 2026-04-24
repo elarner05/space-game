@@ -11,3 +11,7 @@ public:
     void update(float dt) override;
     void registerEntity(Texture2D entity) override;
 };
+
+namespace Core {
+    void drawEntities();
+}

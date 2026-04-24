@@ -30,8 +30,9 @@ space-game/
 | Dependency | Version |
 |------------|---------|
 | [raylib](https://github.com/raysan5/raylib) | 5.5 |
+| [tracy](https://github.com/wolfpld/tracy) | - |
 
-No manual dependency installation is required, CMake will download raylib automatically at configure time using FetchContent.
+No manual dependency installation is required, CMake will download external packages automatically at configure time using FetchContent.
 
 ## Building
 

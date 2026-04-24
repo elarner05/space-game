@@ -3,6 +3,8 @@
 #include "raylib.h"
 #include "raymath.h"
 
+#include "utils/profiler.hpp"
+
 // Gilbert-Johnson-Keerthi (GJK) collision detection algorithm in 2D
 // http://www.dyn4j.org/2010/04/gjk-gilbert-johnson-keerthi/
 
@@ -89,6 +91,7 @@ static constexpr int GJK_MAX_ITERS = 20;
 // The GJK yes/no test
 bool gjk(const Collider& first, const Vector2& posA, const Collider& second, const Vector2& posB, Vector2 outSimplex[3])
 {
+    ZoneScoped;
 
     size_t  index = 0; // index of current vertex of simplex
     Vector2 a, b, c, direction, ao, ab, ac, abperp, acperp = {0};

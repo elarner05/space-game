@@ -3,6 +3,7 @@
 #include <cfloat>
 #include <vector>
 
+#include "utils/profiler.hpp"
 // internal helpers
 
 // 2D "cross product"; the scalar z-component of (a x b)
@@ -66,6 +67,7 @@ static constexpr float EPA_TOLERANCE = 1e-4f;
 
 ContactManifold epa(const Collider& a, const Vector2& posA, const Collider& b, const Vector2& posB, Vector2 simplex[3])
 {
+    ZoneScoped;
     ContactManifold result{};
     result.valid = false;
 
@@ -170,6 +172,7 @@ static float momentOfInertia(const Kinematics* k, float boundingRadius) {
 
 void resolveCollision(const ContactManifold& manifold, Kinematics* kA, const Vector2& posA, Kinematics* kB, const Vector2& posB, float restitution)
 {
+    ZoneScoped;
     if (!manifold.valid) return;
 
     const Vector2& n = manifold.normal; // points from B into A
@@ -266,6 +269,7 @@ void resolveCollision(const ContactManifold& manifold, Kinematics* kA, const Vec
 // positional correction (baumgarte)
 void positionalCorrection(const ContactManifold& manifold, Kinematics* kA, Kinematics* kB)
 {
+    ZoneScoped;
     if (!manifold.valid) return;
 
     constexpr float SLOP = 1.5f; // pixels of allowed penetration before correction

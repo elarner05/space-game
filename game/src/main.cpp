@@ -7,9 +7,12 @@
 #include <vector>
 
 
+// cd build; cmake .. -DENABLE_TRACY=ON;make clean; make;./space-game
+
 void GameInit()
 {
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE);
+    
     InitWindow(InitialWidth, InitialHeight, "space-game");
     SetTargetFPS(60);
 
@@ -61,9 +64,9 @@ int main()
 
         // test asteroids
         std::vector<EntityID> asts;
-        asts.reserve(200);
+        asts.reserve(800);
 
-        for (int i = 0; i < 200; i++) {
+        for (int i = 0; i < 800; i++) {
             float x = 100.f + (i % 10) * 100.f;
             float y = 200.f + (i / 10) * 100.f;
             float vx = (i % 2 == 0) ? 0.f : -0.f;
@@ -84,6 +87,10 @@ int main()
 
     while (!WindowShouldClose())
     {
+        ZoneScopedN("loop");
+        {
+        ZoneScopedN("game_update");
+        
         t += GetFrameTime();
         if (t > 0.01f) {
             
@@ -117,19 +124,21 @@ int main()
 
             t = 0.f;
         }
+        }
 
         if (!GameUpdate())
             break;
 
-        
+        {
+        ZoneScopedN("render_update");
         BeginDrawing();
         ClearBackground(BLACK);
-        
         
         Core::draw();
 
         DrawFPS(10, 10);
         EndDrawing();
+        }
     }
     save.version = 1;
     Kinematics& kin = Core::getKinematics(s1);
