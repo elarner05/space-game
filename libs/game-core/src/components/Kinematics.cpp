@@ -25,7 +25,7 @@ void Kinematics::update(float dt) {
     rotation += angularVelocity * dt;
     rotation = fmodf(rotation, 2*PI);
     if (rotation < 0) rotation += 2*PI;
-    resolveChunk();
+    // chunk is resolved externally, to manage chunkmap integrity
 }
 
 void Kinematics::changeRotation(float amount)

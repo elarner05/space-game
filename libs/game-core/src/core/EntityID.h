@@ -27,7 +27,7 @@ namespace robin_hood {
     template<>
     struct hash<EntityID> {
         size_t operator()(const EntityID& id) const noexcept {
-            return hash<uint32_t>{}(id.index); // hash function with good distribution, https://stackoverflow.com/a/1646913
+            return hash<uint32_t>{}(id.index);
         }
     };
 }

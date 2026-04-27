@@ -4,12 +4,13 @@
 #include "components/Kinematics.h"
 #include "components/CompoundCollider.h"
 #include "core/Core.h"
+#include "core/ChunkMapUtil.h"
 
 #include "utils/profiler.hpp"
 // #include "utils/debug_flags.h"
 
 namespace Core {
-    bool handleCollision(Kinematics& kinA, Kinematics& kinB, CompoundCollider& colA, CompoundCollider& colB){
+    bool handleCollision(const EntityID& idA, const EntityID& idB, Kinematics& kinA, Kinematics& kinB, CompoundCollider& colA, CompoundCollider& colB){
         bool handled = false;
         constexpr float elasticity = 1.f;
 
@@ -48,20 +49,11 @@ namespace Core {
 
                 resolveCollision(manifold, &kinA, posA, &kinB, posB, elasticity);
                 positionalCorrection(manifold, &kinA, &kinB);
+                // chunk resolved externally, chunkmap is being looped over
                 handled = true;
             }
         }
         return handled;
-    }
-
-    // helper to call by ID instead of components
-    void handleCollision(EntityID a, EntityID b) {
-        handleCollision(
-            kinematicsSystem.m_entities[slots[a.index].arrayIndex],
-            kinematicsSystem.m_entities[slots[b.index].arrayIndex],
-            colliderSystem.m_entities[slots[a.index].arrayIndex],
-            colliderSystem.m_entities[slots[b.index].arrayIndex]
-        );
     }
 
     void processCollisions(float dt) {
@@ -69,48 +61,47 @@ namespace Core {
         ChunkCoord camChunk = camera.currentChunk;
         int simDist = GameCamera::simulationDistance;
 
-        // track tested pairs to avoid duplicates across chunk neighbours
-        robin_hood::unordered_set<uint64_t> testedPairs;
-
-        auto pairKey = [](EntityID a, EntityID b) -> uint64_t {
-            if (a > b) std::swap(a, b);
-            return ((uint64_t)a.index << 32) | (uint64_t)b.index;
-        };
         for (int dx = -simDist; dx <= simDist; dx++) {
             for (int dy = -simDist; dy <= simDist; dy++) {
                 ZoneScopedN("collision_chunk");
                 ChunkCoord chunk = { camChunk.x + dx, camChunk.y + dy };
-                auto it = chunkMap.find(chunk);
-                if (it == chunkMap.end()) continue;
+                auto it = Core::chunkMap.find(chunk);
+                if (it == Core::chunkMap.end()) continue;
+                const auto& locals = it->second;
 
-                const std::vector<EntityID>& locals = it->second;
-
-                // test within this chunk
+                // Within-chunk pairs
                 for (size_t i = 0; i < locals.size(); i++) {
+                    size_t idxA = slots[locals[i].index].arrayIndex;
+                    Kinematics& kinA = kinematicsSystem.m_entities[idxA];
+                    CompoundCollider& colA = colliderSystem.m_entities[idxA];
                     for (size_t j = i + 1; j < locals.size(); j++) {
-                        EntityID a = locals[i], b = locals[j];
-                        if (testedPairs.insert(pairKey(a, b)).second)
-                            handleCollision(a, b);
+                        size_t idxB = slots[locals[j].index].arrayIndex;
+                        handleCollision(locals[i], locals[j], kinA, kinematicsSystem.m_entities[idxB],
+                                        colA, colliderSystem.m_entities[idxB]);
                     }
                 }
 
-                // test against each neighbour chunk
-                for (int nx = -1; nx <= 1; nx++) {
-                    for (int ny = -1; ny <= 1; ny++) {
-                        if (nx == 0 && ny == 0) continue;
-                        ChunkCoord neighbour = { chunk.x + nx, chunk.y + ny };
-                        auto nit = chunkMap.find(neighbour);
-                        if (nit == chunkMap.end()) continue;
-
-                        for (EntityID a : locals) {
-                            for (EntityID b : nit->second) {
-                                if (testedPairs.insert(pairKey(a, b)).second)
-                                    handleCollision(a, b);
-                            }
+                // Forward neighbours only to avoid duplicate cross-chunk pairs
+                constexpr std::pair<int,int> forwardNeighbours[] = {
+                    {1,0},{-1,1},{0,1},{1,1}
+                };
+                for (auto [nx, ny] : forwardNeighbours) {
+                    ChunkCoord neighbour = { chunk.x + nx, chunk.y + ny };
+                    auto nit = Core::chunkMap.find(neighbour);
+                    if (nit == Core::chunkMap.end()) continue;
+                    for (EntityID a : locals) {
+                        size_t idxA = slots[a.index].arrayIndex;
+                        Kinematics& kinA = kinematicsSystem.m_entities[idxA];
+                        CompoundCollider& colA = colliderSystem.m_entities[idxA];
+                        for (EntityID b : nit->second) {
+                            size_t idxB = slots[b.index].arrayIndex;
+                            handleCollision(a, b, kinA, kinematicsSystem.m_entities[idxB],
+                                            colA, colliderSystem.m_entities[idxB]);
                         }
                     }
                 }
             }
         }
+
     }
 }

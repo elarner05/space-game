@@ -11,16 +11,18 @@
 
 void GameInit()
 {
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    // SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE);
     
     InitWindow(InitialWidth, InitialHeight, "space-game");
-    SetTargetFPS(60);
+    // SetTargetFPS(60);
 
     Core::Debug::showHitboxes() = false;
     Core::Debug::showEntityOrigins() = false;
     Core::Debug::showVelocities() = true;
     Core::Debug::showChunkBounds() = true;
     Core::Debug::showCameraPosition() = true;
+    Core::Debug::showChunkLoadingBounds() = true;
 
     Core::init();
 }
@@ -64,9 +66,9 @@ int main()
 
         // test asteroids
         std::vector<EntityID> asts;
-        asts.reserve(800);
+        asts.reserve(1000);
 
-        for (int i = 0; i < 800; i++) {
+        for (int i = 0; i < 1000; i++) {
             float x = 100.f + (i % 10) * 100.f;
             float y = 200.f + (i / 10) * 100.f;
             float vx = (i % 2 == 0) ? 0.f : -0.f;

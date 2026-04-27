@@ -20,8 +20,9 @@ void GameCamera::updatePosition(float dt) {
     kinematics.chunk = Core::getKinematics(follow).chunk;
     kinematics.localPosition = Core::getKinematics(follow).localPosition;
     kinematics.localPosition = Vector2Subtract(kinematics.localPosition, Vector2{ GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f });
-    bool changed = kinematics.resolveChunk();
+    bool changed = kinematics.resolveChunk(); // this is ok as not an entity -> not in chunkmap
 
+    Core::chunkLoader.requireUpdate(); // force chunkloader update
 }
 
 Vector2 GameCamera::toScreen(const Kinematics& kin) const {

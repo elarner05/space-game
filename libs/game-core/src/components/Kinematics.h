@@ -10,7 +10,7 @@
 #include <cmath>
 #include <algorithm>
 
-constexpr int   CHUNK_SIZE = 1024; // world units per chunk side
+constexpr int   CHUNK_SIZE = 200; // world units per chunk side; should be just larger than largest entities collider bounding diameter
 constexpr float CHUNK_SIZEF = static_cast<float>(CHUNK_SIZE);
 
 

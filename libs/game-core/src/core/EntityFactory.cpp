@@ -29,9 +29,9 @@ static EntityID registerEntity(EntityTag tag, const EntityType type, Kinematics 
 EntityID Core::EntityFactory::spawn(EntityTag tag, EntityFlags flags) {
     switch (tag) {
         case EntityTag::Spaceship:
-            return registerEntity(tag, EntityTypes::Spaceship, Kinematics{0}, flags);
+            return registerEntity(tag, EntityTypes::Spaceship, Kinematics{}, flags);
         case EntityTag::Asteroid:
-            return registerEntity(tag, EntityTypes::Asteroid, Kinematics{0}, flags);
+            return registerEntity(tag, EntityTypes::Asteroid, Kinematics{}, flags);
         default:
             return EntityID::invalid();
     }

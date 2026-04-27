@@ -24,4 +24,9 @@ namespace Core::Debug {
         static bool flag = false;
         return flag;
     }
+
+    bool& showChunkLoadingBounds() {
+        static bool flag = false;
+        return flag;
+    }
 }

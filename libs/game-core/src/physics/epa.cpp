@@ -284,7 +284,7 @@ void positionalCorrection(const ContactManifold& manifold, Kinematics* kA, Kinem
     Vector2 correction = Vector2Scale(manifold.normal, mag);
 
     kA->localPosition = Vector2Add(kA->localPosition, Vector2Scale(correction, invMA));
-    kA->resolveChunk();
     kB->localPosition = Vector2Subtract(kB->localPosition, Vector2Scale(correction, invMB));
-    kB->resolveChunk();
+    
+    // chunk resolution externally
 }

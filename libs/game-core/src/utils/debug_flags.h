@@ -5,4 +5,5 @@ namespace Core::Debug {
     bool& showVelocities();
     bool& showChunkBounds();
     bool& showCameraPosition();
+    bool& showChunkLoadingBounds();
 }

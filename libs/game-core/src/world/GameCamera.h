@@ -11,7 +11,7 @@ public:
     EntityID follow;
 
     constexpr static int simulationDistance = 3;
-    constexpr static int loadDistance = simulationDistance + 2;
+    constexpr static int loadDistance = 3;
 
     GameCamera();
     GameCamera(ChunkCoord c, Vector2 pos);

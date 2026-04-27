@@ -1,5 +1,6 @@
 #include "core/Core.h"
 #include "core/CollisionProcessor.h"
+#include "core/ChunkMapUtil.h"
 
 #include "utils/debug_flags.h"
 #include "utils/TextureManager.h"
@@ -17,6 +18,7 @@
 #include "physics/epa.h"
 #include "utils/profiler.hpp"
 
+#include <iostream>
 #include <cassert>
 // unhandled runtime assertion error, entityflags vector out of bounds operator[] access
 
@@ -52,33 +54,52 @@ namespace Core {
         freeList.reserve(expectedEntities);
     }
 
+    // debug function
+    void checkChunkMapValidity() {
+        for (auto& [coord, vec] : chunkMap) {
+            for (auto& id : vec) {
+                assert(id.isValid() && "invalid EntityID in chunkMap");
+                assert(id.index < slots.size() && "EntityID index out of range in chunkMap");
+                std::cout << "ID 1: " << id.generation << "  ID 2: " << slots[id.index].generation << std::endl;
+
+                assert(id.generation == slots[id.index].generation && "stale EntityID in chunkMap");
+            }
+        }
+    }
+
     void update(float dt) {
         {
             ZoneScopedN("kinematics");
             kinematicsSystem.update(dt);
         }
+        
         {
             ZoneScopedN("collider_rotation");
             colliderSystem.update(dt);
 
         }
-        {
-            ZoneScopedN("chunk_loading");
-            chunkLoader.update();
-        }
 
         {
             ZoneScopedN("collision_processing");
             processCollisions(dt);
+            Core::resolveAllEntityChunks(); // chunks are not resolved until after collision processing
         }
-
 
         camera.updatePosition(dt);
         {
             ZoneScopedN("animation");
             animationSystem.update(dt);
         }
+        
+        {
+            ZoneScopedN("chunk_loading");
+            Core::chunkLoader.loadChunksInBuffer(); // load any chunks that are unloaded in which entities have just moved into
+            Core::chunkLoader.update();
+        }
+        // checkChunkMapValidity(); debug
     }
+
+   
 
     // draw function
     void draw() {
@@ -86,6 +107,18 @@ namespace Core {
         if ( Debug::showChunkBounds() ) {
             renderChunkBoundaries();
         }
+
+        if ( Debug::showChunkLoadingBounds() ) {
+            robin_hood::unordered_set<ChunkCoord> desiredChunks;
+            for (int dx = -camera.loadDistance; dx <= camera.loadDistance; dx++)
+                for (int dy = -camera.loadDistance; dy <= camera.loadDistance; dy++)
+                    desiredChunks.insert({ camera.currentChunk.x + dx, camera.currentChunk.y + dy });
+
+            for (const ChunkCoord& coord : desiredChunks) {
+                colorChunk(coord, Color{150, 150, 150, 50});
+            }
+        }
+        
 
         drawEntities();
 
@@ -100,6 +133,8 @@ namespace Core {
 
             DrawText(text.c_str(), x, y, fontSize, WHITE);
         }
+
+        DrawText(("Entity count: " + std::to_string(kinematicsSystem.m_entities.size())).c_str(), 10, 100, 20, WHITE);
     }
  
     // registers all the components of an entity to the system
@@ -125,6 +160,7 @@ namespace Core {
 
         slots[slotIndex].arrayIndex = arrayIdx;
         indexToEntity.push_back(id);
+        
         chunkMap[kin.chunk].push_back(id);
         kinematicsSystem.m_entities.back().computeAndSetBoundingRadius(colliderSystem.m_entities.back());
         return id;
@@ -133,20 +169,34 @@ namespace Core {
     // removes (deletes) an entity from all systems, swaps with the last entity to avoid holes, invalidates ID and returns slot to pool
     // could do with some cleanup
     void unregisterEntity(EntityID id) {
+        {
         assert(id.isValid() && "unregistering invalid ID");
         assert(id.index < slots.size() && "ID never registered");
         assert(id.generation == slots[id.index].generation && "stale or double unregister");
+        assert(kinematicsSystem.m_entities.size() == colliderSystem.m_entities.size() &&
+               kinematicsSystem.m_entities.size() == colliderSystem.m_original_entities.size() &&
+               kinematicsSystem.m_entities.size() == animationSystem.m_entities.size() &&
+               kinematicsSystem.m_entities.size() == renderSystem.m_entities.size() &&
+               kinematicsSystem.m_entities.size() == entityTagTable.size() &&
+               kinematicsSystem.m_entities.size() == entityFlagTable.size() &&
+               "component/entity tables desynced");
         assert(entityFlagTable.size() == entityTagTable.size() && "flag/tag tables desynced");
-
+        }
         size_t idx = slots[id.index].arrayIndex;
-
+        {
         assert(idx < kinematicsSystem.m_entities.size() && "idx out of range");
         assert(idx < entityTagTable.size() && "entityTagTable out of range");
         assert(indexToEntity.size() == kinematicsSystem.m_entities.size() && "indexToEntity desynced");
-
+        }
         // remove from chunkMap before anything moves
-        ChunkCoord chunk = kinematicsSystem.m_entities[idx].chunk;
-        auto& list = chunkMap[chunk];
+        ChunkCoord& chunk = kinematicsSystem.m_entities[idx].chunk;
+ 
+        auto it = chunkMap.find(chunk);
+        assert(it != chunkMap.end() && "chunk not found in chunkMap");
+
+        std::vector<EntityID>& list = it->second;
+        
+        assert(std::find(list.begin(), list.end(), id) != list.end() && "entity not found in chunkMap");
         list.erase(std::remove(list.begin(), list.end(), id), list.end());
 
         size_t lastIdx = kinematicsSystem.m_entities.size() - 1;
@@ -198,6 +248,19 @@ namespace Core {
     Texture2D& getTexture(EntityID id) {
         assert(id.generation == slots[id.index].generation && "stale EntityID");
         return renderSystem.m_entities[slots[id.index].arrayIndex];
+    }
+
+    void colorChunk(ChunkCoord coord, Color color) {
+        float cx = GetScreenWidth();
+        float cy = GetScreenHeight();
+
+        const Kinematics& cam = Core::camera.kinematics;
+
+        Vector2 chunkScreenPos = {
+            (float)(coord.x - cam.chunk.x) * CHUNK_SIZEF - cam.localPosition.x,
+            (float)(coord.y - cam.chunk.y) * CHUNK_SIZEF - cam.localPosition.y
+        };
+        DrawRectangle((int)chunkScreenPos.x, (int)chunkScreenPos.y, CHUNK_SIZE, CHUNK_SIZE, color);
     }
 
     // needs moved to render system, useful for debug

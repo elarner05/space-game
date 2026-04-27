@@ -7,39 +7,64 @@
 #include <cassert>
 #include <fstream>
 #include <filesystem>
+#include <iostream>
 
 void ChunkLoader::update() {
-    ChunkCoord camChunk = Core::camera.kinematics.chunk;
-    
-    // only recalculate when camera crosses a chunk boundary
-    if (camChunk == m_lastCameraChunk) return;
-    m_lastCameraChunk = camChunk;
+    ChunkCoord camChunk = Core::camera.currentChunk;
 
-    int ld = GameCamera::loadDistance;
+    // Only update when camera crosses chunk boundary; needs to account for loading chunks to move entities into the correct chunk
+    // currently fast enough to constantly check
+    // if (camChunk == m_lastCameraChunk)
+    //     return;
+    if (!needsUpdate) return;
 
-    // collect what should be loaded
+    // m_lastCameraChunk = camChunk;
+
+    const int ld = GameCamera::loadDistance;
+
     robin_hood::unordered_set<ChunkCoord> desiredChunks;
-    for (int dx = -ld; dx <= ld; dx++)
-        for (int dy = -ld; dy <= ld; dy++)
+    desiredChunks.reserve((2 * ld + 1) * (2 * ld + 1));
+
+    // chunks that should be loaded, around camera
+    for (int dx = -ld; dx <= ld; dx++) {
+        for (int dy = -ld; dy <= ld; dy++) {
             desiredChunks.insert({ camChunk.x + dx, camChunk.y + dy });
-
-    // unload chunks that are no longer in range
-    for (auto it = m_loadedChunks.begin(); it != m_loadedChunks.end(); ) {
-        if (!desiredChunks.count(*it)) {
-            unloadChunk(*it);
-            it = m_loadedChunks.erase(it);
-        } else {
-            ++it;
         }
     }
 
-    // load chunks that aren't loaded yet
-    for (const ChunkCoord& coord : desiredChunks) {
-        if (!m_loadedChunks.count(coord)) {
-            loadChunk(coord);
-            m_loadedChunks.insert(coord);
+    std::vector<ChunkCoord> toLoad;
+    std::vector<ChunkCoord> toUnload;
+
+    toLoad.reserve(desiredChunks.size());
+    toUnload.reserve(m_loadedChunks.size());
+
+    // needs loaded
+    for (const ChunkCoord& c : desiredChunks) {
+        if (!m_loadedChunks.contains(c)) {
+            toLoad.push_back(c);
         }
     }
+
+    // needs unloaded
+    for (const ChunkCoord& c : m_loadedChunks) {
+        if (!desiredChunks.contains(c)) {
+            toUnload.push_back(c);
+        }
+    }
+
+    // load
+    for (const ChunkCoord& c : toLoad) {
+        loadChunk(c);
+        m_loadedChunks.insert(c);
+    }
+
+    // unload
+    for (const ChunkCoord& c : toUnload) {
+        unloadChunk(c);
+        m_loadedChunks.erase(c);
+    }
+
+    needsUpdate = false;
 }
 
 // File layout per chunk:
@@ -52,9 +77,12 @@ void ChunkLoader::update() {
 
 
 ChunkLoader::ChunkLoader(const std::string& savePath)
-    : m_savePath(savePath)
-    , m_lastCameraChunk({INT_MIN, INT_MIN}) // forces first update to load
+    : m_chunkBuffer()
+    , m_savePath(savePath)
+    , needsUpdate(true)
+    // , m_lastCameraChunk({INT_MIN, INT_MIN}) // forces first update to load
 {
+    m_chunkBuffer.reserve((GameCamera::loadDistance * 2 + 1) * (GameCamera::loadDistance * 2 + 1));
     std::filesystem::create_directories(savePath);
 }
 
@@ -79,55 +107,120 @@ void ChunkLoader::loadChunk(ChunkCoord coord) {
 
     deserializeChunk(coord, file);
 }
+
+// loads a chunk if not loaded, used for when an entity moves into an unloaded chunk to perserve the chunks integrity
+void ChunkLoader::loadChunkIfUnloaded(ChunkCoord coord) {
+    if (chunkIsLoaded(coord)) {
+        return;
+    }
+    loadChunk(coord);
+    m_loadedChunks.insert(coord);
+}
+
 void ChunkLoader::unloadChunk(ChunkCoord coord) {
     auto it = Core::chunkMap.find(coord);
-    if (it == Core::chunkMap.end() || it->second.empty()) return;
+    if (it == Core::chunkMap.end()) return;
 
-    std::string path = chunkPath(m_savePath, coord);
-    std::ofstream file(path, std::ios::binary | std::ios::trunc);
-    if (!file) return;
-
-    file.write(reinterpret_cast<const char*>(&ChunkLoader::CHUNK_FORMAT_VERSION),
-               sizeof(ChunkLoader::CHUNK_FORMAT_VERSION));
-
-    uint32_t count = 0;
-    for (EntityID id : it->second) {
-        size_t idx = Core::slots[id.index].arrayIndex;
-        if ((Core::entityFlagTable[idx] & EntityFlags::Persistent) == EntityFlags::None)
-            count++;
-    }
-    if (count == 0) {
+    if (it->second.empty()) {
         deleteChunkFile(coord);
-        while (true) {
-            auto it2 = Core::chunkMap.find(coord);
-            if (it2 == Core::chunkMap.end() || it2->second.empty()) break;
-            it2->second.erase(it2->second.begin());
-        }
+        Core::chunkMap.erase(coord);
         return;
     }
 
+    std::string path = chunkPath(m_savePath, coord);
+
+    std::vector<EntityID> toUnregister;
+    toUnregister.reserve(20);
+    uint32_t count = 0;
+
+    std::vector<EntityID> snapshot(it->second.begin(), it->second.end());
+    for (EntityID id : snapshot) {
+        // assert(std::count(it->second.begin(), it->second.end(), id) == 1 
+        //    && "duplicate EntityID in chunkMap");
+        size_t idx = Core::slots[id.index].arrayIndex;
+        if ((Core::entityFlagTable[idx] & EntityFlags::Persistent) == EntityFlags::None) {
+            count++;
+            toUnregister.push_back(id);
+        }
+    }
+
+    if (count == 0) {
+        deleteChunkFile(coord);
+        it->second.clear();
+        Core::chunkMap.erase(coord);
+        return;
+    }
+
+    std::ofstream file(path, std::ios::binary | std::ios::trunc);
+    if (!file) {
+        TraceLog(LOG_WARNING, "File could not be opened for chunk!");
+        it->second.clear();
+        Core::chunkMap.erase(coord);
+        return;
+    }
+
+    file.write(reinterpret_cast<const char*>(&ChunkLoader::CHUNK_FORMAT_VERSION),
+               sizeof(ChunkLoader::CHUNK_FORMAT_VERSION));
     file.write(reinterpret_cast<const char*>(&count), sizeof(count));
 
-    for (EntityID id : it->second) {
+    for (EntityID id : toUnregister) {
         size_t idx = Core::slots[id.index].arrayIndex;
-        if ((Core::entityFlagTable[idx] & EntityFlags::Persistent) != EntityFlags::None) continue;
         EntityTag tag = Core::entityTagTable[idx];
         file.write(reinterpret_cast<const char*>(&tag), sizeof(EntityTag));
         const Kinematics& kin = Core::kinematicsSystem.m_entities[idx];
+        assert(kin.chunk == coord);
         file.write(reinterpret_cast<const char*>(&kin), sizeof(Kinematics));
     }
 
-    while (true) {
-        auto it2 = Core::chunkMap.find(coord);
-        if (it2 == Core::chunkMap.end() || it2->second.empty()) break;
-        EntityID front = it2->second.front();
-        size_t idx = Core::slots[front.index].arrayIndex;
-        if ((Core::entityFlagTable[idx] & EntityFlags::Persistent) != EntityFlags::None) {
-            it2->second.erase(it2->second.begin());
-            continue;
-        }
-        Core::unregisterEntity(front);
+    // Sort toUnregister by arrayIndex descending before the unregister loop
+    std::sort(toUnregister.begin(), toUnregister.end(), [](EntityID a, EntityID b) {
+        return Core::slots[a.index].arrayIndex > Core::slots[b.index].arrayIndex;
+    });
+
+    for (EntityID id : toUnregister)
+        Core::unregisterEntity(id);  // chunkMap entry removed inside here
+    
+    if (Core::chunkMap.count(coord) && Core::chunkMap[coord].empty()) {
+        Core::chunkMap.erase(coord);
     }
+    // for (auto& [chunk, list] : Core::chunkMap) {   debugging to check chunkmap integrity
+    //     for (auto id : list) {
+    //         size_t idx = Core::slots[id.index].arrayIndex;
+    //         auto& kin = Core::kinematicsSystem.m_entities[idx];
+    //         assert(kin.chunk == chunk && "Post-unload mismatch");
+    //     }
+    // }
+
+}
+
+// allows batching chunk loads/unloads
+void ChunkLoader::addToChunkBuffer(ChunkCoord coord) {
+    m_chunkBuffer.insert(coord);
+}
+void ChunkLoader::removeFromChunkBuffer(ChunkCoord coord) {
+    m_chunkBuffer.erase(coord);
+}
+
+void ChunkLoader::loadChunksInBuffer() {
+    for (const ChunkCoord& coord : m_chunkBuffer) {
+        if (!chunkIsLoaded(coord)) {
+            loadChunk(coord);
+            m_loadedChunks.insert(coord);
+        }
+    }
+    m_chunkBuffer.clear();
+
+    needsUpdate = true;
+}
+
+void ChunkLoader::unloadChunksInBuffer() {
+    for (const ChunkCoord& coord : m_chunkBuffer) {
+        if (chunkIsLoaded(coord)) {
+            unloadChunk(coord);
+            m_loadedChunks.erase(coord);
+        }
+    }
+    m_chunkBuffer.clear();
 }
 
 void ChunkLoader::deleteChunkFile(ChunkCoord coord) {
@@ -137,7 +230,7 @@ void ChunkLoader::deleteChunkFile(ChunkCoord coord) {
     }
 }
 
-void ChunkLoader::deserializeChunk(ChunkCoord coord, std::ifstream& file) {
+bool ChunkLoader::deserializeChunk(ChunkCoord coord, std::ifstream& file) {
     uint32_t count = 0;
     file.read(reinterpret_cast<char*>(&count), sizeof(count));
 
@@ -147,9 +240,11 @@ void ChunkLoader::deserializeChunk(ChunkCoord coord, std::ifstream& file) {
 
         Kinematics kin{};
         file.read(reinterpret_cast<char*>(&kin), sizeof(Kinematics));
+        assert(kin.chunk == coord);
 
         Core::EntityFactory::spawn(tag, kin);
     }
+    return true;
 }
 
 void ChunkLoader::saveAll() {
@@ -161,5 +256,5 @@ void ChunkLoader::saveAll() {
 }
 
 bool ChunkLoader::chunkIsLoaded(ChunkCoord coord) const {
-    return m_loadedChunks.count(coord) > 0;
+    return m_loadedChunks.contains(coord);
 }

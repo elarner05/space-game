@@ -51,6 +51,7 @@ namespace Core {
     Texture2D& getTexture(EntityID id);
     
     void renderChunkBoundaries(Color color = GRAY);
+    void colorChunk(ChunkCoord coord, Color color = GRAY);
 
     void unloadAll();
     
