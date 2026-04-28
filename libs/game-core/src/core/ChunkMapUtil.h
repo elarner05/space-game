@@ -1,4 +1,3 @@
-
 #include "core/Core.h"
 
 namespace Core {

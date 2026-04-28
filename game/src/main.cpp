@@ -17,7 +17,7 @@ void GameInit()
     InitWindow(InitialWidth, InitialHeight, "space-game");
     // SetTargetFPS(60);
 
-    Core::Debug::showHitboxes() = false;
+    Core::Debug::showHitboxes() = true;
     Core::Debug::showEntityOrigins() = false;
     Core::Debug::showVelocities() = true;
     Core::Debug::showChunkBounds() = true;
@@ -59,11 +59,11 @@ int main()
         Core::chunkLoader.update();
         s1 = Core::EntityFactory::spawn(EntityTag::Spaceship,
             Kinematics{save.playerChunk, save.playerPosition, 
-                      {0,0}, 200000, save.playerRotation, 0, 0}, EntityFlags::Persistent);
+                      {0,0}, 20, save.playerRotation, 0, 0}, EntityFlags::Persistent);
     } else {
         Core::chunkLoader.update();
         s1 = Core::EntityFactory::spawn(EntityTag::Spaceship,
-            Kinematics{{0,0}, {100,100}, {0,0}, 200000, 0, 0, 0}, EntityFlags::Persistent);
+            Kinematics{{0,0}, {100,100}, {0,0}, 20, 0, 0, 0}, EntityFlags::Persistent);
 
         // test asteroids
         std::vector<EntityID> asts;

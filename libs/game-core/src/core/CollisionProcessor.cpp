@@ -72,12 +72,12 @@ namespace Core {
                 // Within-chunk pairs
                 for (size_t i = 0; i < locals.size(); i++) {
                     size_t idxA = slots[locals[i].index].arrayIndex;
-                    Kinematics& kinA = kinematicsSystem.m_entities[idxA];
-                    CompoundCollider& colA = colliderSystem.m_entities[idxA];
+                    Kinematics& kinA = kinematicsTable[idxA];
+                    CompoundCollider& colA = colliderTable[idxA];
                     for (size_t j = i + 1; j < locals.size(); j++) {
                         size_t idxB = slots[locals[j].index].arrayIndex;
-                        handleCollision(locals[i], locals[j], kinA, kinematicsSystem.m_entities[idxB],
-                                        colA, colliderSystem.m_entities[idxB]);
+                        handleCollision(locals[i], locals[j], kinA, kinematicsTable[idxB],
+                                        colA, colliderTable[idxB]);
                     }
                 }
 
@@ -91,12 +91,12 @@ namespace Core {
                     if (nit == Core::chunkMap.end()) continue;
                     for (EntityID a : locals) {
                         size_t idxA = slots[a.index].arrayIndex;
-                        Kinematics& kinA = kinematicsSystem.m_entities[idxA];
-                        CompoundCollider& colA = colliderSystem.m_entities[idxA];
+                        Kinematics& kinA = kinematicsTable[idxA];
+                        CompoundCollider& colA = colliderTable[idxA];
                         for (EntityID b : nit->second) {
                             size_t idxB = slots[b.index].arrayIndex;
-                            handleCollision(a, b, kinA, kinematicsSystem.m_entities[idxB],
-                                            colA, colliderSystem.m_entities[idxB]);
+                            handleCollision(a, b, kinA, kinematicsTable[idxB],
+                                            colA, colliderTable[idxB]);
                         }
                     }
                 }

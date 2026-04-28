@@ -58,8 +58,8 @@ bool Core::resolveEntityChunk(Kinematics& kin, EntityID id) {
 
 // could add flag to kinematics for when the entity has moved, so its O(M) instead of O(N) [M = moved entities]
 bool Core::resolveAllEntityChunks() {
-    for (size_t i = 0; i < Core::kinematicsSystem.m_entities.size(); ++i) {
-        Kinematics& kin = Core::kinematicsSystem.m_entities[i];
+    for (size_t i = 0; i < Core::kinematicsTable.size(); ++i) {
+        Kinematics& kin = Core::kinematicsTable[i];
         EntityID id = Core::indexToEntity[i];
         Core::resolveEntityChunk(kin, id);
     }

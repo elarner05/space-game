@@ -10,58 +10,39 @@
 #include <iostream>
 
 void ChunkLoader::update() {
-    ChunkCoord camChunk = Core::camera.currentChunk;
-
-    // Only update when camera crosses chunk boundary; needs to account for loading chunks to move entities into the correct chunk
-    // currently fast enough to constantly check
-    // if (camChunk == m_lastCameraChunk)
-    //     return;
     if (!needsUpdate) return;
 
-    // m_lastCameraChunk = camChunk;
-
+    ChunkCoord& camChunk = Core::camera.currentChunk;
     const int ld = GameCamera::loadDistance;
 
-    robin_hood::unordered_set<ChunkCoord> desiredChunks;
-    desiredChunks.reserve((2 * ld + 1) * (2 * ld + 1));
+    const int minX = camChunk.x - ld;
+    const int maxX = camChunk.x + ld;
+    const int minY = camChunk.y - ld;
+    const int maxY = camChunk.y + ld;
 
-    // chunks that should be loaded, around camera
+    // load chunks
     for (int dx = -ld; dx <= ld; dx++) {
         for (int dy = -ld; dy <= ld; dy++) {
-            desiredChunks.insert({ camChunk.x + dx, camChunk.y + dy });
+            ChunkCoord c{ camChunk.x + dx, camChunk.y + dy };
+            if (!m_loadedChunks.contains(c)) {
+                loadChunk(c);
+                m_loadedChunks.insert(c);
+            }
         }
     }
 
-    std::vector<ChunkCoord> toLoad;
-    std::vector<ChunkCoord> toUnload;
+    // unload chunks
+    for (auto it = m_loadedChunks.begin(); it != m_loadedChunks.end(); ) { // uses iterator to allow erasing while iterating
+        const ChunkCoord& c = *it;
 
-    toLoad.reserve(desiredChunks.size());
-    toUnload.reserve(m_loadedChunks.size());
+        if (c.x < minX || c.x > maxX ||
+            c.y < minY || c.y > maxY) {
 
-    // needs loaded
-    for (const ChunkCoord& c : desiredChunks) {
-        if (!m_loadedChunks.contains(c)) {
-            toLoad.push_back(c);
+            unloadChunk(c);
+            it = m_loadedChunks.erase(it);
+        } else {
+            ++it;
         }
-    }
-
-    // needs unloaded
-    for (const ChunkCoord& c : m_loadedChunks) {
-        if (!desiredChunks.contains(c)) {
-            toUnload.push_back(c);
-        }
-    }
-
-    // load
-    for (const ChunkCoord& c : toLoad) {
-        loadChunk(c);
-        m_loadedChunks.insert(c);
-    }
-
-    // unload
-    for (const ChunkCoord& c : toUnload) {
-        unloadChunk(c);
-        m_loadedChunks.erase(c);
     }
 
     needsUpdate = false;
@@ -167,7 +148,7 @@ void ChunkLoader::unloadChunk(ChunkCoord coord) {
         size_t idx = Core::slots[id.index].arrayIndex;
         EntityTag tag = Core::entityTagTable[idx];
         file.write(reinterpret_cast<const char*>(&tag), sizeof(EntityTag));
-        const Kinematics& kin = Core::kinematicsSystem.m_entities[idx];
+        const Kinematics& kin = Core::kinematicsTable[idx];
         assert(kin.chunk == coord);
         file.write(reinterpret_cast<const char*>(&kin), sizeof(Kinematics));
     }

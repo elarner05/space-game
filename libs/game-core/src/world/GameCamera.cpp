@@ -4,20 +4,28 @@
 
 // could add some handling for invalid follow targets
 
-GameCamera::GameCamera() : kinematics(), follow(EntityID{0}), currentChunk(kinematics.chunk) {
+GameCamera::GameCamera() : kinematics(), follow(EntityID{0}), currentChunk(kinematics.chunk), mode(Mode::Free) {
 }
-GameCamera::GameCamera(ChunkCoord c, Vector2 pos) : kinematics{c, pos, {0, 0}, 0, 0, 0} ,follow(EntityID{0}), currentChunk(kinematics.chunk) {
+GameCamera::GameCamera(ChunkCoord c, Vector2 pos) : kinematics{c, pos, {0, 0}, 0, 0, 0} ,follow(EntityID{0}), currentChunk(kinematics.chunk), mode(Mode::Free) {
 }
 
 GameCamera::~GameCamera() {
 }
 
 void GameCamera::updatePosition(float dt) {
-    const Kinematics& target = Core::getKinematics(follow);
-    kinematics.chunk = target.chunk;
-    kinematics.localPosition = target.localPosition;
-    kinematics.resolveChunk();
-    Core::chunkLoader.requireUpdate();
+    if (mode== Mode::Follow) {
+        const Kinematics& target = Core::getKinematics(follow);
+        kinematics.chunk = target.chunk;
+        kinematics.localPosition = target.localPosition;
+    }
+    if (mode == Mode::Free) {
+        kinematics.update(dt);
+    }
+
+    bool changedChunk = kinematics.resolveChunk();
+
+    if (changedChunk)
+        Core::chunkLoader.requireUpdate();
 }
 
 Vector2 GameCamera::toScreen(const Kinematics& kin) const {
@@ -36,4 +44,15 @@ Vector2 GameCamera::toScreen(const Kinematics& kin) const {
 
 void GameCamera::setFollow(EntityID target) {
     follow = target;
+    mode = Mode::Follow;
+}
+
+void GameCamera::setFree() {
+    follow = EntityID{0};
+    mode = Mode::Free;
+}
+
+void GameCamera::changePosition(Vector2 delta) {
+    kinematics.localPosition.x += delta.x;
+    kinematics.localPosition.y += delta.y;
 }

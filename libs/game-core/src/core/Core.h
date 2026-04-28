@@ -3,19 +3,23 @@
 // need to move as many imports to the cpp as possible for encapsulation
 #include "raylib.h"
 
-#include "core/System.h"
-#include "core/ColliderSystem.h"
-#include "core/KinematicsSystem.h"
-#include "core/AnimationSystem.h"
+// #include "core/System.h"
+// #include "core/ColliderSystem.h"
+// #include "core/KinematicsSystem.h"
+// #include "core/AnimationSystem.h"
 #include "core/RenderSystem.h"
 
 #include "robin_hood.h"
 
 #include "world/GameCamera.h"
 #include "core/EntityID.h"
-#include "components/EntityTypes.h"
 #include "world/ChunkLoader.h"
 #include "world/SaveManager.h"
+
+#include "components/EntityTypes.h"
+#include "components/Kinematics.h"
+#include "components/CompoundCollider.h"
+#include "components/Animation.h"
 
 namespace Core {
 
@@ -28,10 +32,14 @@ namespace Core {
     extern std::vector<Slot> slots;
     extern std::vector<uint32_t> freeList; // indices of available slots
 
-    extern AnimationSystem animationSystem;
-    extern KinematicsSystem kinematicsSystem;
-    extern ColliderSystem colliderSystem;
-    extern RenderSystem renderSystem;
+    extern std::vector<Animations> animationTable;
+    extern std::vector<Texture2D> textureTable;
+    extern std::vector<CompoundCollider> originalColliderTable; // does not get rotated
+    extern std::vector<CompoundCollider> colliderTable;
+    extern std::vector<Kinematics> kinematicsTable;
+    // extern KinematicsSystem kinematicsSystem;
+    // extern ColliderSystem colliderSystem;
+    // extern RenderSystem renderSystem;
 
     extern ChunkLoader chunkLoader;
     extern SaveManager saveManager;
@@ -55,4 +63,7 @@ namespace Core {
 
     void unloadAll();
     
+    void updateKinematics(float dt);
+    void updateAnimations(float dt);
+    void updateColliders(float dt);
 }

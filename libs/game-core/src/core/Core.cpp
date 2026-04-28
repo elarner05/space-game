@@ -2,6 +2,10 @@
 #include "core/CollisionProcessor.h"
 #include "core/ChunkMapUtil.h"
 
+#include "core/KinematicsSystem.h"
+#include "core/ColliderSystem.h"
+#include "core/AnimationSystem.h"
+
 #include "utils/debug_flags.h"
 #include "utils/TextureManager.h"
 
@@ -23,10 +27,11 @@
 #include <cmath>
 
 namespace Core {
-    AnimationSystem animationSystem;
-    KinematicsSystem kinematicsSystem;
-    ColliderSystem colliderSystem;
-    RenderSystem renderSystem;
+    std::vector<Kinematics> kinematicsTable;
+    std::vector<Animations> animationTable;
+    std::vector<Texture2D> textureTable;
+    std::vector<CompoundCollider> colliderTable;
+    std::vector<CompoundCollider> originalColliderTable;
     GameCamera camera;
 
     ChunkLoader chunkLoader{"saves/"};
@@ -42,11 +47,12 @@ namespace Core {
     void init() {
         constexpr size_t expectedEntities = 1024; // reserve more memory as the number of entities grows, better allocation startegy
 
-        kinematicsSystem.m_entities.reserve(expectedEntities);
-        colliderSystem.m_original_entities.reserve(expectedEntities);
-        colliderSystem.m_entities.reserve(expectedEntities);
-        animationSystem.m_entities.reserve(expectedEntities);
-        renderSystem.m_entities.reserve(expectedEntities);
+        kinematicsTable.reserve(expectedEntities);
+        animationTable.reserve(expectedEntities);
+        textureTable.reserve(expectedEntities);
+        colliderTable.reserve(expectedEntities);
+        originalColliderTable.reserve(expectedEntities);
+        textureTable.reserve(expectedEntities);
         indexToEntity.reserve(expectedEntities);
         entityTagTable.reserve(expectedEntities);
         entityFlagTable.reserve(expectedEntities);
@@ -70,12 +76,12 @@ namespace Core {
     void update(float dt) {
         {
             ZoneScopedN("kinematics");
-            kinematicsSystem.update(dt);
+            Core::updateKinematics(dt);
         }
         
         {
             ZoneScopedN("collider_rotation");
-            colliderSystem.update(dt);
+            Core::updateColliders(dt);
 
         }
 
@@ -88,7 +94,7 @@ namespace Core {
         camera.updatePosition(dt);
         {
             ZoneScopedN("animation");
-            animationSystem.update(dt);
+            Core::updateAnimations(dt);
         }
         
         {
@@ -114,18 +120,12 @@ namespace Core {
         }
 
         if ( Debug::showChunkLoadingBounds() ) {
-            robin_hood::unordered_set<ChunkCoord> desiredChunks;
             for (int dx = -camera.loadDistance; dx <= camera.loadDistance; dx++)
                 for (int dy = -camera.loadDistance; dy <= camera.loadDistance; dy++)
-                    desiredChunks.insert({ camera.currentChunk.x + dx, camera.currentChunk.y + dy });
-
-            for (const ChunkCoord& coord : desiredChunks) {
-                colorChunk(coord, Color{150, 150, 150, 50});
-            }
+                    colorChunk({camera.currentChunk.x + dx, camera.currentChunk.y + dy}, Color{150, 150, 150, 50});
         }
         
-
-        drawEntities();
+        Core::drawEntities();
 
         if ( Debug::showCameraPosition() ) {
             std::string text = "Chunk: " + std::to_string(camera.currentChunk.x) + " " + std::to_string(camera.currentChunk.y);
@@ -143,7 +143,7 @@ namespace Core {
 
         if (Debug::showDebugInfo()) {
             DrawFPS(10, 10);
-            DrawText(("Entity count: " + std::to_string(kinematicsSystem.m_entities.size())).c_str(), 10, 50, 20, WHITE);
+            DrawText(("Entity count: " + std::to_string(kinematicsTable.size())).c_str(), 10, 50, 20, WHITE);
             DrawText(("Chunk count: " + std::to_string(chunkMap.size())).c_str(), 10, 80, 20, WHITE);
             DrawText(("Zoom level: " + to_1dp(camera.renderZoom) + "x").c_str(), 10, 110, 20, WHITE);
         }
@@ -160,21 +160,22 @@ namespace Core {
             slots.push_back({0, 0});
         }
 
-        uint32_t arrayIdx = static_cast<uint32_t>(kinematicsSystem.m_entities.size());
+        uint32_t arrayIdx = static_cast<uint32_t>(kinematicsTable.size());
         EntityID id = EntityID{slotIndex, slots[slotIndex].generation};
 
-        kinematicsSystem.registerEntity(kin);
-        colliderSystem.registerEntity(col);
-        animationSystem.registerEntity(anim);
-        renderSystem.registerEntity(tex);
-        entityTagTable.push_back(tag);
-        entityFlagTable.push_back(flags);
+        kinematicsTable.emplace_back(kin);
+        colliderTable.emplace_back(col);
+        originalColliderTable.push_back(col); // force copy
+        animationTable.emplace_back(anim);
+        textureTable.emplace_back(tex);
+        entityTagTable.emplace_back(tag);
+        entityFlagTable.emplace_back(flags);
 
         slots[slotIndex].arrayIndex = arrayIdx;
-        indexToEntity.push_back(id);
+        indexToEntity.emplace_back(id);
         
         chunkMap[kin.chunk].push_back(id);
-        kinematicsSystem.m_entities.back().computeAndSetBoundingRadius(colliderSystem.m_entities.back());
+        kinematicsTable.back().computeAndSetBoundingRadius(colliderTable.back());
         return id;
     }
 
@@ -185,23 +186,23 @@ namespace Core {
         assert(id.isValid() && "unregistering invalid ID");
         assert(id.index < slots.size() && "ID never registered");
         assert(id.generation == slots[id.index].generation && "stale or double unregister");
-        assert(kinematicsSystem.m_entities.size() == colliderSystem.m_entities.size() &&
-               kinematicsSystem.m_entities.size() == colliderSystem.m_original_entities.size() &&
-               kinematicsSystem.m_entities.size() == animationSystem.m_entities.size() &&
-               kinematicsSystem.m_entities.size() == renderSystem.m_entities.size() &&
-               kinematicsSystem.m_entities.size() == entityTagTable.size() &&
-               kinematicsSystem.m_entities.size() == entityFlagTable.size() &&
+        assert(kinematicsTable.size() == colliderTable.size() &&
+               kinematicsTable.size() == originalColliderTable.size() &&
+               kinematicsTable.size() == animationTable.size() &&
+               kinematicsTable.size() == textureTable.size() &&
+               kinematicsTable.size() == entityTagTable.size() &&
+               kinematicsTable.size() == entityFlagTable.size() &&
                "component/entity tables desynced");
         assert(entityFlagTable.size() == entityTagTable.size() && "flag/tag tables desynced");
         }
         size_t idx = slots[id.index].arrayIndex;
         {
-        assert(idx < kinematicsSystem.m_entities.size() && "idx out of range");
+        assert(idx < kinematicsTable.size() && "idx out of range");
         assert(idx < entityTagTable.size() && "entityTagTable out of range");
-        assert(indexToEntity.size() == kinematicsSystem.m_entities.size() && "indexToEntity desynced");
+        assert(indexToEntity.size() == kinematicsTable.size() && "indexToEntity desynced");
         }
         // remove from chunkMap before anything moves
-        ChunkCoord& chunk = kinematicsSystem.m_entities[idx].chunk;
+        ChunkCoord& chunk = kinematicsTable[idx].chunk;
  
         auto it = chunkMap.find(chunk);
         assert(it != chunkMap.end() && "chunk not found in chunkMap");
@@ -211,17 +212,17 @@ namespace Core {
         assert(std::find(list.begin(), list.end(), id) != list.end() && "entity not found in chunkMap");
         list.erase(std::remove(list.begin(), list.end(), id), list.end());
 
-        size_t lastIdx = kinematicsSystem.m_entities.size() - 1;
+        size_t lastIdx = kinematicsTable.size() - 1;
         EntityID lastEntity = indexToEntity[lastIdx];
 
         // swap components
-        std::swap(kinematicsSystem.m_entities[idx],         kinematicsSystem.m_entities[lastIdx]);
-        std::swap(animationSystem.m_entities[idx],          animationSystem.m_entities[lastIdx]);
-        std::swap(renderSystem.m_entities[idx],             renderSystem.m_entities[lastIdx]);
-        std::swap(colliderSystem.m_entities[idx],           colliderSystem.m_entities[lastIdx]);
-        std::swap(colliderSystem.m_original_entities[idx],  colliderSystem.m_original_entities[lastIdx]);
-        std::swap(entityTagTable[idx],                      entityTagTable[lastIdx]);
-        std::swap(entityFlagTable[idx],                     entityFlagTable[lastIdx]);
+        std::swap(kinematicsTable[idx],       kinematicsTable[lastIdx]);
+        std::swap(animationTable[idx],        animationTable[lastIdx]);
+        std::swap(textureTable[idx],          textureTable[lastIdx]);
+        std::swap(colliderTable[idx],         colliderTable[lastIdx]);
+        std::swap(originalColliderTable[idx], originalColliderTable[lastIdx]);
+        std::swap(entityTagTable[idx],        entityTagTable[lastIdx]);
+        std::swap(entityFlagTable[idx],       entityFlagTable[lastIdx]);
 
         // fix slot for the entity that moved
         if (id != lastEntity) {
@@ -234,11 +235,11 @@ namespace Core {
         slots[id.index].arrayIndex = UINT32_MAX;
         freeList.push_back(id.index);
 
-        kinematicsSystem.m_entities.pop_back();
-        animationSystem.m_entities.pop_back();
-        renderSystem.m_entities.pop_back();
-        colliderSystem.m_entities.pop_back();
-        colliderSystem.m_original_entities.pop_back();
+        kinematicsTable.pop_back();
+        animationTable.pop_back();
+        textureTable.pop_back();
+        colliderTable.pop_back();
+        originalColliderTable.pop_back();
         entityTagTable.pop_back();
         entityFlagTable.pop_back();
         indexToEntity.pop_back();
@@ -247,19 +248,19 @@ namespace Core {
     // helpers to get components by ID, needs moved into systems
     Kinematics& getKinematics(EntityID id) {
         assert(id.generation == slots[id.index].generation && "stale EntityID");
-        return kinematicsSystem.m_entities[slots[id.index].arrayIndex];
+        return kinematicsTable[slots[id.index].arrayIndex];
     }
     CompoundCollider& getCollider(EntityID id) {
         assert(id.generation == slots[id.index].generation && "stale EntityID");
-        return colliderSystem.m_entities[slots[id.index].arrayIndex];
+        return colliderTable[slots[id.index].arrayIndex];
     }
     Animations& getAnimations(EntityID id) {
         assert(id.generation == slots[id.index].generation && "stale EntityID");
-        return animationSystem.m_entities[slots[id.index].arrayIndex];
+        return animationTable[slots[id.index].arrayIndex];
     }
     Texture2D& getTexture(EntityID id) {
         assert(id.generation == slots[id.index].generation && "stale EntityID");
-        return renderSystem.m_entities[slots[id.index].arrayIndex];
+        return textureTable[slots[id.index].arrayIndex];
     }
 
     inline Vector2 worldToScreen(Vector2 worldOffset) {
@@ -315,6 +316,5 @@ namespace Core {
         chunkLoader.saveAll();
         
         TextureManager::unloadAllTextures();
-    }
-    
+    }    
 }

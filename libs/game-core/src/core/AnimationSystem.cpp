@@ -1,18 +1,9 @@
 #include "core/AnimationSystem.h"
-#include <cassert>
+#include "Core.h"
 
-AnimationSystem::AnimationSystem() = default;
-
-AnimationSystem::~AnimationSystem() = default;
-
-void AnimationSystem::update(float dt)
-{
-    for (auto& entity : m_entities) {
-        entity.update(dt);
+void Core::updateAnimations(float dt) {
+    for (uint32_t i = 0; i < animationTable.size(); i++) {
+        Animations& anim = animationTable[i];
+        anim.update(dt);
     }
-}
-
-void AnimationSystem::registerEntity(Animations entity)
-{
-    m_entities.push_back(Animations{std::move(entity)});
 }

@@ -1,33 +1,15 @@
 #include "core/RenderSystem.h"
 
-#include <cassert>
-
-RenderSystem::RenderSystem() = default;
-
-RenderSystem::~RenderSystem() = default;
-
-void RenderSystem::update(float dt)
-{
-    // doesn't have a valid update
-}
-
-void RenderSystem::registerEntity(Texture2D entity)
-{
-    m_entities.push_back(entity);
-}
-
 #include "core/Core.h"
 #include "components/Animation.h"
 #include "utils/debug_flags.h"
 
-
 void Core::drawEntities() {
-
-    for (size_t i = 0; i < Core::animationSystem.m_entities.size(); ++i) {
-        Animations& anim = Core::animationSystem.m_entities[i];
-        Kinematics& kin = Core::kinematicsSystem.m_entities[i];
-        CompoundCollider& col = Core::colliderSystem.m_entities[i];
-        Texture2D& tex = Core::renderSystem.m_entities[i];
+    for (size_t i = 0; i < Core::animationTable.size(); ++i) {
+        Animations& anim = Core::animationTable[i];
+        Kinematics& kin = Core::kinematicsTable[i];
+        CompoundCollider& col = Core::colliderTable[i];
+        Texture2D& tex = Core::textureTable[i];
 
         Vector2 screenPos = camera.toScreen(kin);
 
