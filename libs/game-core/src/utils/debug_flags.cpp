@@ -29,4 +29,8 @@ namespace Core::Debug {
         static bool flag = false;
         return flag;
     }
+    bool& showDebugInfo() {
+        static bool flag = false;
+        return flag;
+    }
 }

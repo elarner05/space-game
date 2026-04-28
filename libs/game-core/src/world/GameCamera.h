@@ -5,13 +5,14 @@
 class GameCamera {
 public:
     Kinematics kinematics;  // camera has a kinematic component, can be accelerated etc
-                            // stores upper left hand corner position
+                            // stores center of the screen
 
-    ChunkCoord currentChunk;// stores chunk of middle of the screen (used for loading etc)
+    ChunkCoord& currentChunk; // stores chunk of middle of the screen (used for loading etc)
     EntityID follow;
 
-    constexpr static int simulationDistance = 3;
-    constexpr static int loadDistance = 3;
+    constexpr static int simulationDistance = 20;
+    constexpr static int loadDistance = 20;
+    float renderZoom = 1.0f;
 
     GameCamera();
     GameCamera(ChunkCoord c, Vector2 pos);

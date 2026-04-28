@@ -2,31 +2,36 @@
 #include "core/Core.h"
 #include "core/EntityID.h"
 
-// need to add some handling for invalid follow targets
+// could add some handling for invalid follow targets
 
-GameCamera::GameCamera() : kinematics(), follow(EntityID{0}) {
+GameCamera::GameCamera() : kinematics(), follow(EntityID{0}), currentChunk(kinematics.chunk) {
 }
-GameCamera::GameCamera(ChunkCoord c, Vector2 pos) : kinematics{c, pos, {0, 0}, 0, 0, 0} ,follow(EntityID{0}), currentChunk(c) {
+GameCamera::GameCamera(ChunkCoord c, Vector2 pos) : kinematics{c, pos, {0, 0}, 0, 0, 0} ,follow(EntityID{0}), currentChunk(kinematics.chunk) {
 }
 
 GameCamera::~GameCamera() {
 }
 
 void GameCamera::updatePosition(float dt) {
-    // could have some nice follow the object code here
-    // for now just directly set to follow target
-    currentChunk = Core::getKinematics(follow).chunk;
-
-    kinematics.chunk = Core::getKinematics(follow).chunk;
-    kinematics.localPosition = Core::getKinematics(follow).localPosition;
-    kinematics.localPosition = Vector2Subtract(kinematics.localPosition, Vector2{ GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f });
-    bool changed = kinematics.resolveChunk(); // this is ok as not an entity -> not in chunkmap
-
-    Core::chunkLoader.requireUpdate(); // force chunkloader update
+    const Kinematics& target = Core::getKinematics(follow);
+    kinematics.chunk = target.chunk;
+    kinematics.localPosition = target.localPosition;
+    kinematics.resolveChunk();
+    Core::chunkLoader.requireUpdate();
 }
 
 Vector2 GameCamera::toScreen(const Kinematics& kin) const {
-    return kin.localPositionRelativeTo(kinematics.chunk, kinematics.localPosition);
+    float hw = GetScreenWidth()  * 0.5f;
+    float hh = GetScreenHeight() * 0.5f;
+    // compute offset from camera center in world pixels
+    float dx = (float)(kin.chunk.x - kinematics.chunk.x) * CHUNK_SIZEF 
+               + kin.localPosition.x - kinematics.localPosition.x;
+    float dy = (float)(kin.chunk.y - kinematics.chunk.y) * CHUNK_SIZEF 
+               + kin.localPosition.y - kinematics.localPosition.y;
+    return {
+        dx * renderZoom + hw,
+        dy * renderZoom + hh
+    };
 }
 
 void GameCamera::setFollow(EntityID target) {

@@ -20,7 +20,7 @@
 
 #include <iostream>
 #include <cassert>
-// unhandled runtime assertion error, entityflags vector out of bounds operator[] access
+#include <cmath>
 
 namespace Core {
     AnimationSystem animationSystem;
@@ -99,7 +99,12 @@ namespace Core {
         // checkChunkMapValidity(); debug
     }
 
-   
+    inline std::string to_1dp(float value) { // fast round float to string at 1dp for zoom level
+        float rounded = std::round(value * 10.0f) / 10.0f;
+        int whole = static_cast<int>(rounded);
+        int frac = static_cast<int>(std::abs(rounded - whole) * 10 + 0.5f);
+        return std::to_string(whole) + "." + std::to_string(frac);
+    };
 
     // draw function
     void draw() {
@@ -134,7 +139,14 @@ namespace Core {
             DrawText(text.c_str(), x, y, fontSize, WHITE);
         }
 
-        DrawText(("Entity count: " + std::to_string(kinematicsSystem.m_entities.size())).c_str(), 10, 100, 20, WHITE);
+        
+
+        if (Debug::showDebugInfo()) {
+            DrawFPS(10, 10);
+            DrawText(("Entity count: " + std::to_string(kinematicsSystem.m_entities.size())).c_str(), 10, 50, 20, WHITE);
+            DrawText(("Chunk count: " + std::to_string(chunkMap.size())).c_str(), 10, 80, 20, WHITE);
+            DrawText(("Zoom level: " + to_1dp(camera.renderZoom) + "x").c_str(), 10, 110, 20, WHITE);
+        }
     }
  
     // registers all the components of an entity to the system
@@ -250,43 +262,52 @@ namespace Core {
         return renderSystem.m_entities[slots[id.index].arrayIndex];
     }
 
-    void colorChunk(ChunkCoord coord, Color color) {
-        float cx = GetScreenWidth();
-        float cy = GetScreenHeight();
-
-        const Kinematics& cam = Core::camera.kinematics;
-
-        Vector2 chunkScreenPos = {
-            (float)(coord.x - cam.chunk.x) * CHUNK_SIZEF - cam.localPosition.x,
-            (float)(coord.y - cam.chunk.y) * CHUNK_SIZEF - cam.localPosition.y
+    inline Vector2 worldToScreen(Vector2 worldOffset) {
+        // worldOffset = world-pixel distance from camera center
+        return Vector2{
+            worldOffset.x * camera.renderZoom + GetScreenWidth()  * 0.5f,
+            worldOffset.y * camera.renderZoom + GetScreenHeight() * 0.5f
         };
-        DrawRectangle((int)chunkScreenPos.x, (int)chunkScreenPos.y, CHUNK_SIZE, CHUNK_SIZE, color);
     }
 
-    // needs moved to render system, useful for debug
+    inline Vector2 chunkToWorld(ChunkCoord coord) {
+        // world-pixel offset from camera center to top-left of chunk
+        const ChunkCoord& camChunk = Core::camera.currentChunk;
+        const Vector2&    camPos   = Core::camera.kinematics.localPosition;
+        return Vector2{
+            (float)(coord.x - camChunk.x) * CHUNK_SIZEF - camPos.x,
+            (float)(coord.y - camChunk.y) * CHUNK_SIZEF - camPos.y
+        };
+    }
+
+    void colorChunk(ChunkCoord coord, Color color) {
+        float zoom = Core::camera.renderZoom;
+        Vector2 screenPos = worldToScreen(chunkToWorld(coord));
+        DrawRectangle(screenPos.x, screenPos.y,
+            (int)(CHUNK_SIZE * zoom), (int)(CHUNK_SIZE * zoom), color);
+    }
+
     void renderChunkBoundaries(Color color) {
         float cx = GetScreenWidth();
         float cy = GetScreenHeight();
+        float zoom = Core::camera.renderZoom;
+        const ChunkCoord& camChunk = Core::camera.currentChunk;
 
-        const Kinematics& cam = Core::camera.kinematics;
+        const int sx = camChunk.x - (int)(cx / (CHUNK_SIZE * zoom) * 0.5f) - 1;
+        const int sy = camChunk.y - (int)(cy / (CHUNK_SIZE * zoom) * 0.5f) - 1;
+        const int hx = camChunk.x + (int)(cx / (CHUNK_SIZE * zoom) * 0.5f) + 2;
+        const int hy = camChunk.y + (int)(cy / (CHUNK_SIZE * zoom) * 0.5f) + 2;
 
-
-        int hx = cam.chunk.x + GetScreenWidth() / CHUNK_SIZE + 3;
-        int hy = cam.chunk.y + GetScreenHeight() / CHUNK_SIZE + 3;
-        // std::cout << "Rendering chunk bounds from (" << sx << ", " << sy << ") with size (" << hx << ", " << hy << ")\n";
-
-        // vertical lines
-        for (int x = cam.chunk.x; x < hx; x++) {
-            DrawLine((int)((x- cam.chunk.x)  * CHUNK_SIZE - cam.localPosition.x), (int)(0),
-                     (int)((x- cam.chunk.x)  * CHUNK_SIZE - cam.localPosition.x), (int)(cy), color);
+        for (int x = sx; x < hx; x++) {
+            Vector2 screenPos = worldToScreen(chunkToWorld({x, 0}));
+            if (screenPos.x < 0.f || screenPos.x > cx) continue;
+            DrawLine((int)screenPos.x, 0, (int)screenPos.x, (int)cy, color);
         }
-
-        // horizontal lines
-        for (int y = cam.chunk.y; y < hy; y++) {
-            DrawLine((int)(0), (int)((y - cam.chunk.y) * CHUNK_SIZE - cam.localPosition.y),
-                     (int)(cx), (int)((y - cam.chunk.y) * CHUNK_SIZE - cam.localPosition.y), color);
+        for (int y = sy; y < hy; y++) {
+            Vector2 screenPos = worldToScreen(chunkToWorld({0, y}));
+            if (screenPos.y < 0.f || screenPos.y > cy) continue;
+            DrawLine(0, (int)screenPos.y, (int)cx, (int)screenPos.y, color);
         }
-
     }
 
     // deconstructor

@@ -23,7 +23,7 @@ public:
 	bool loadColliders(const char* filepath);
 	
 	
-	void drawDebug(const Vector2& pos, const Color c = RED) const;
+	void drawDebug(const Vector2& pos, const Color c = RED, float zoom = 1.f) const;
 
 	void setRotation(float rot);
 	

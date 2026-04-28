@@ -264,22 +264,35 @@ bool CompoundCollider::loadColliders(const char* filepath)
 //     }
 // }
 
-void CompoundCollider::drawDebug(const Vector2& pos, const Color c) const
+void CompoundCollider::drawDebug(const Vector2& pos, const Color c, float zoom) const
 {
     for (int i{ 0 }; i < colliderCount; i++) {
-        
-        const Collider& col = colliders[i]; 
-        Vector2 origin = Vector2Add(pos, col.offset);
+        const Collider& col = colliders[i];
+        Vector2 origin = { pos.x + col.offset.x * zoom, pos.y + col.offset.y * zoom };
+
+        float cx = (float)GetScreenWidth();
+        float cy = (float)GetScreenHeight();
+        float margin = (col.radius + 200.0f) * zoom; // skip if origin is offscreen
+        if (origin.x < -margin || origin.x > cx + margin ||
+            origin.y < -margin || origin.y > cy + margin) continue;
+
         if (col.count == 0) {
-            DrawCircleLines((int)roundf(origin.x), (int)roundf(origin.y), col.radius, c);
+            DrawCircleLines((int)roundf(origin.x), (int)roundf(origin.y), col.radius * zoom, c);
             continue;
         }
         for (unsigned char v = 0; v < col.count - 1; v++) {
-            DrawLine((int)roundf(col.verts[v].x + origin.x), (int)roundf(col.verts[v].y + origin.y), (int)roundf(col.verts[v + 1].x + origin.x), (int)roundf(col.verts[v + 1].y + origin.y), c);
+            DrawLine(
+                (int)roundf(origin.x + col.verts[v].x * zoom),
+                (int)roundf(origin.y + col.verts[v].y * zoom),
+                (int)roundf(origin.x + col.verts[v + 1].x * zoom),
+                (int)roundf(origin.y + col.verts[v + 1].y * zoom), c);
         }
-        DrawLine((int)roundf(col.verts[0].x + origin.x), (int)roundf(col.verts[0].y + origin.y), (int)roundf(col.verts[col.count - 1].x + origin.x), (int)roundf(col.verts[col.count - 1].y + origin.y), c);
+        DrawLine(
+            (int)roundf(origin.x + col.verts[0].x * zoom),
+            (int)roundf(origin.y + col.verts[0].y * zoom),
+            (int)roundf(origin.x + col.verts[col.count - 1].x * zoom),
+            (int)roundf(origin.y + col.verts[col.count - 1].y * zoom), c);
     }
-    
 }
 
 void CompoundCollider::setRotation(float rot)

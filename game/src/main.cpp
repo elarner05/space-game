@@ -23,6 +23,7 @@ void GameInit()
     Core::Debug::showChunkBounds() = true;
     Core::Debug::showCameraPosition() = true;
     Core::Debug::showChunkLoadingBounds() = true;
+    Core::Debug::showDebugInfo() = true;
 
     Core::init();
 }
@@ -58,11 +59,11 @@ int main()
         Core::chunkLoader.update();
         s1 = Core::EntityFactory::spawn(EntityTag::Spaceship,
             Kinematics{save.playerChunk, save.playerPosition, 
-                      {0,0}, 20, save.playerRotation, 0, 0}, EntityFlags::Persistent);
+                      {0,0}, 200000, save.playerRotation, 0, 0}, EntityFlags::Persistent);
     } else {
         Core::chunkLoader.update();
         s1 = Core::EntityFactory::spawn(EntityTag::Spaceship,
-            Kinematics{{0,0}, {100,100}, {0,0}, 20, 0, 0, 0}, EntityFlags::Persistent);
+            Kinematics{{0,0}, {100,100}, {0,0}, 200000, 0, 0, 0}, EntityFlags::Persistent);
 
         // test asteroids
         std::vector<EntityID> asts;
@@ -110,10 +111,6 @@ int main()
                     Core::getAnimations(s1).switchAnimation(std::string("idle"));
                 }
             }
-
-            if (IsKeyPressed(KEY_C)) {
-                Core::Debug::showHitboxes() = !Core::Debug::showHitboxes();
-            }
             
             if (GetScreenHeight()!= y || GetScreenWidth() != x) {
                 x = GetScreenWidth();
@@ -138,7 +135,6 @@ int main()
         
         Core::draw();
 
-        DrawFPS(10, 10);
         EndDrawing();
         }
     }
