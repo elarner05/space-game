@@ -42,6 +42,20 @@ Vector2 GameCamera::toScreen(const Kinematics& kin) const {
     };
 }
 
+Vector2 GameCamera::toScreen(float posX, float posY, ChunkCoord chunk) const {
+    float hw = GetScreenWidth()  * 0.5f;
+    float hh = GetScreenHeight() * 0.5f;
+    // compute offset from camera center in world pixels
+    float dx = (float)(chunk.x - kinematics.chunk.x) * CHUNK_SIZEF 
+               + posX - kinematics.localPosition.x;
+    float dy = (float)(chunk.y - kinematics.chunk.y) * CHUNK_SIZEF 
+               + posY - kinematics.localPosition.y;
+    return {
+        dx * renderZoom + hw,
+        dy * renderZoom + hh
+    };
+}
+
 void GameCamera::setFollow(EntityID target) {
     follow = target;
     mode = Mode::Follow;

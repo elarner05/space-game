@@ -7,4 +7,6 @@ namespace Core::Debug {
     bool& showCameraPosition();
     bool& showChunkLoadingBounds();
     bool& showDebugInfo();
+
+    bool& stepMode();
 }

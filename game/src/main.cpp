@@ -24,6 +24,7 @@ void GameInit()
     Core::Debug::showCameraPosition() = true;
     Core::Debug::showChunkLoadingBounds() = true;
     Core::Debug::showDebugInfo() = true;
+    Core::Debug::stepMode() = false;
 
     Core::init();
 }
@@ -95,8 +96,15 @@ int main()
         ZoneScopedN("game_update");
         
         t += GetFrameTime();
-        if (t > 0.01f) {
-            
+
+        Core::Input::Consume::update(); // update consumed keys at start of frame
+        Core::Input::handleDebugInput(t);
+
+        if (Core::Debug::stepMode() && t > 0.01f) {
+            t = 0.010001f; // fixed timestep in step mode for consistent stepping
+        }
+        
+        if (t > 0.01f && (!Core::Debug::stepMode() || (Core::Debug::stepMode() && Core::Input::Consume::pressed(KEY_G)))) {
             
 
             if (IsKeyDown(KEY_W)) {

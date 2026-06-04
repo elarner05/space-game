@@ -5,5 +5,6 @@
 #include "../src/core/Core.h"
 #include "../src/core/EntityFactory.h"
 #include "../src/utils/debug_flags.h"
+#include "../src/input/InputKeyConsume.h"
 #include "../src/input/InputHandler.h"
 #include "../src/utils/profiler.hpp"

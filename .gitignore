@@ -5,6 +5,7 @@ _bin/
 .vscode
 bin/
 build/
+saves/
 Makefile
 obj
 *.vcxproj

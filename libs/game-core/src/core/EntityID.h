@@ -15,6 +15,7 @@ struct EntityID {
     
     bool operator<(const EntityID& other) const {return index < other.index;}
 };
+constexpr EntityID INVALID_ENTITY = {UINT32_MAX, UINT32_MAX};
 
 struct Slot {
     uint32_t arrayIndex;  // where in the component arrays this entity lives

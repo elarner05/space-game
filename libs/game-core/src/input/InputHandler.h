@@ -5,5 +5,6 @@
 namespace Core {
     namespace Input {
         bool handleSpaceshipInput(EntityID id, float dt);
+        void handleDebugInput(float dt);
     }
 }

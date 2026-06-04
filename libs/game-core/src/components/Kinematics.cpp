@@ -67,9 +67,6 @@ void Kinematics::accelerateRotation(const Vector2 &origin, const Vector2& mouse,
     // damping (prevents oscillation)
     angularVelocity *= 0.95f;
 
-    // integrate rotation
-    rotation += angularVelocity * dt;
-
     // keep rotation in [0, 360)
     rotation = fmodf(rotation, 2*PI);
     if (rotation < 0) rotation += 2*PI;

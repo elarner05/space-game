@@ -33,4 +33,8 @@ namespace Core::Debug {
         static bool flag = false;
         return flag;
     }
+    bool& stepMode() {
+        static bool flag = false;
+        return flag;
+    }
 }

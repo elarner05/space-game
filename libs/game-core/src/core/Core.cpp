@@ -1,10 +1,12 @@
 #include "core/Core.h"
 #include "core/CollisionProcessor.h"
+#include "core/Projectiles.h"
 #include "core/ChunkMapUtil.h"
 
 #include "core/KinematicsSystem.h"
 #include "core/ColliderSystem.h"
 #include "core/AnimationSystem.h"
+#include "core/StatsSystem.h"
 
 #include "utils/debug_flags.h"
 #include "utils/TextureManager.h"
@@ -20,6 +22,7 @@
 
 #include "physics/gjk.h"
 #include "physics/epa.h"
+
 #include "utils/profiler.hpp"
 
 #include <iostream>
@@ -32,6 +35,7 @@ namespace Core {
     std::vector<Texture2D> textureTable;
     std::vector<CompoundCollider> colliderTable;
     std::vector<CompoundCollider> originalColliderTable;
+    std::vector<Stats> statsTable;
     GameCamera camera;
 
     ChunkLoader chunkLoader{"saves/"};
@@ -52,6 +56,7 @@ namespace Core {
         textureTable.reserve(expectedEntities);
         colliderTable.reserve(expectedEntities);
         originalColliderTable.reserve(expectedEntities);
+        statsTable.reserve(expectedEntities);
         textureTable.reserve(expectedEntities);
         indexToEntity.reserve(expectedEntities);
         entityTagTable.reserve(expectedEntities);
@@ -90,6 +95,14 @@ namespace Core {
             processCollisions(dt);
             Core::resolveAllEntityChunks(); // chunks are not resolved until after collision processing
         }
+        {  
+            ZoneScopedN("projectiles");
+            Core::Projectiles::update(dt);
+        }
+        {
+            ZoneScopedN("stats");
+            Core::updateStats(dt);
+        }
 
         camera.updatePosition(dt);
         {
@@ -126,6 +139,8 @@ namespace Core {
         }
         
         Core::drawEntities();
+        Core::Projectiles::renderProjectiles();
+        // Core::Projectiles::debugRender();
 
         if ( Debug::showCameraPosition() ) {
             std::string text = "Chunk: " + std::to_string(camera.currentChunk.x) + " " + std::to_string(camera.currentChunk.y);
@@ -150,7 +165,7 @@ namespace Core {
     }
  
     // registers all the components of an entity to the system
-    EntityID registerEntity(EntityTag tag, Kinematics kin, CompoundCollider col, Animations anim, Texture2D tex, EntityFlags flags) {
+    EntityID registerEntity(EntityTag tag, Kinematics kin, CompoundCollider col, Stats stats, Animations anim, Texture2D tex, EntityFlags flags) {
         uint32_t slotIndex;
         if (!freeList.empty()) {
             slotIndex = freeList.back();
@@ -166,6 +181,7 @@ namespace Core {
         kinematicsTable.emplace_back(kin);
         colliderTable.emplace_back(col);
         originalColliderTable.push_back(col); // force copy
+        statsTable.emplace_back(stats);
         animationTable.emplace_back(anim);
         textureTable.emplace_back(tex);
         entityTagTable.emplace_back(tag);
@@ -221,6 +237,7 @@ namespace Core {
         std::swap(textureTable[idx],          textureTable[lastIdx]);
         std::swap(colliderTable[idx],         colliderTable[lastIdx]);
         std::swap(originalColliderTable[idx], originalColliderTable[lastIdx]);
+        std::swap(statsTable[idx],            statsTable[lastIdx]);
         std::swap(entityTagTable[idx],        entityTagTable[lastIdx]);
         std::swap(entityFlagTable[idx],       entityFlagTable[lastIdx]);
 
@@ -239,6 +256,7 @@ namespace Core {
         animationTable.pop_back();
         textureTable.pop_back();
         colliderTable.pop_back();
+        statsTable.pop_back();
         originalColliderTable.pop_back();
         entityTagTable.pop_back();
         entityFlagTable.pop_back();

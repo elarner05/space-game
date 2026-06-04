@@ -32,4 +32,5 @@ public:
     void updatePosition(float dt);
 
     Vector2 toScreen(const Kinematics& kin) const;
+    Vector2 toScreen(float posX, float posY, ChunkCoord chunk) const;
 };

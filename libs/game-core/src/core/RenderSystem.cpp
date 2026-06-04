@@ -4,6 +4,18 @@
 #include "components/Animation.h"
 #include "utils/debug_flags.h"
 
+void DrawHealthBar(Vector2 position, float width, float height, int16_t health) {
+    float ratio = (float)health / (float)100;
+    if (ratio < 0.0f) ratio = 0.0f;
+    if (ratio > 1.0f) ratio = 1.0f;
+
+    DrawRectangleV(position, {width, height}, RED);
+
+    DrawRectangleV(position, {width * ratio, height}, GREEN);
+
+    DrawRectangleLines(position.x, position.y, width, height, WHITE);
+}
+
 void Core::drawEntities() {
     for (size_t i = 0; i < Core::animationTable.size(); ++i) {
         Animations& anim = Core::animationTable[i];
@@ -18,6 +30,7 @@ void Core::drawEntities() {
             Vector2{ anim.origin.x*camera.renderZoom, anim.origin.y*camera.renderZoom },
             (float)kin.rotation * RAD2DEG, RAYWHITE);
 
+        DrawHealthBar(Vector2{screenPos.x - anim.dimensions.x/2, screenPos.y - anim.dimensions.y/2}, anim.dimensions.x, 5, Core::statsTable[i].health);
 
         if (Debug::showHitboxes())
             col.drawDebug(screenPos, RED, camera.renderZoom);

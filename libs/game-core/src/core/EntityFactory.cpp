@@ -2,6 +2,7 @@
 #include "components/Animation.h"
 #include "components/Animation.h"
 #include "components/CompoundCollider.h"
+#include "components/Stats.h"
 #include "core/Core.h"
 #include "utils/TextureManager.h"
 #include <iostream>
@@ -22,7 +23,7 @@ static EntityID registerEntity(EntityTag tag, const EntityType type, Kinematics 
         std::cerr << "Failed to load texture for entity type: " << type.textureFilepath << std::endl;
     }
 
-    return Core::registerEntity(tag, kin, col, anim, tex, flags);
+    return Core::registerEntity(tag, kin, col, Stats{type.health}, anim, tex, flags);
 }
 
 

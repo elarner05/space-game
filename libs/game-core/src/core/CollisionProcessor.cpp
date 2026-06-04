@@ -7,8 +7,6 @@
 #include "core/ChunkMapUtil.h"
 
 #include "utils/profiler.hpp"
-// #include "utils/debug_flags.h"
-
 namespace Core {
     bool handleCollision(const EntityID& idA, const EntityID& idB, Kinematics& kinA, Kinematics& kinB, CompoundCollider& colA, CompoundCollider& colB){
         bool handled = false;

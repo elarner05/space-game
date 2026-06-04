@@ -20,6 +20,7 @@
 #include "components/Kinematics.h"
 #include "components/CompoundCollider.h"
 #include "components/Animation.h"
+#include "components/Stats.h"
 
 namespace Core {
 
@@ -37,6 +38,7 @@ namespace Core {
     extern std::vector<CompoundCollider> originalColliderTable; // does not get rotated
     extern std::vector<CompoundCollider> colliderTable;
     extern std::vector<Kinematics> kinematicsTable;
+    extern std::vector<Stats> statsTable; // stores runtime entity stats
     // extern KinematicsSystem kinematicsSystem;
     // extern ColliderSystem colliderSystem;
     // extern RenderSystem renderSystem;
@@ -50,7 +52,7 @@ namespace Core {
     void update(float dt);
     void draw();
 
-    EntityID registerEntity(EntityTag tag, Kinematics kin, CompoundCollider col, Animations anim, Texture2D tex, EntityFlags flags=EntityFlags::None);
+    EntityID registerEntity(EntityTag tag, Kinematics kin, CompoundCollider col, Stats stats, Animations anim, Texture2D tex, EntityFlags flags=EntityFlags::None);
     void unregisterEntity(EntityID id);
 
     Kinematics& getKinematics(EntityID id);
