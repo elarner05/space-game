@@ -64,8 +64,7 @@ bool Core::Input::handleSpaceshipInput(EntityID id, float dt) {
     
 
     if (Core::Input::Consume::pressed(KEY_SPACE)) {
-        for (int i =0; i <1; i++)
-            Core::Projectiles::spawn(kin.localPosition.x, kin.localPosition.y, sinf(kin.rotation+i)*(2000.f), -cosf(kin.rotation+i)*(2000.f), 0.5f, kin.chunk, 20, id, ProjectileType::Laser);
+        Core::Projectiles::spawn(kin.localPosition.x, kin.localPosition.y, sinf(kin.rotation)*(2000.f), -cosf(kin.rotation)*(2000.f), 0.5f, kin.chunk, 20, id, ProjectileType::Laser);
     }
 
     return pressed;

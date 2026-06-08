@@ -2,8 +2,6 @@
 #include "core/Projectiles.h"
 #include "core/Core.h"
 #include "robin_hood.h"
-#include <iostream>
-
 
 static robin_hood::unordered_set<EntityID> deadEntities;
 
@@ -16,7 +14,6 @@ void processHitEvents(HitEventBuffer& hitBuffer) {deadEntities.reserve(1024);
         Stats& stats =  Core::statsTable[Core::slots[hit.hitEntity.index].arrayIndex];
 
         bool died = stats.dealDamage(hit.damage);
-        std::cout << "Dealt dmg: " << hit.damage << ", Health: " << stats.health << std::endl;
         if (died) {
             deadEntities.insert(hit.hitEntity);
             // Core::entityFlagTable[hit.hitEntity] |= EntityFlags::Dead;

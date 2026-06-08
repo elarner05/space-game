@@ -4,6 +4,7 @@
 #include "world/GameCamera.h"
 
 #include <cassert>
+#include <iostream>
 
 namespace Core::Projectiles {
     ProjectilePool pool;
@@ -253,6 +254,8 @@ void Core::Projectiles::update(float dt) {
         pool.lifetime[i] -= dt;
         if (pool.lifetime[i] <= 0.f) {
             pool.active[i] = false;
+            pool.count-=1;
+            pool.next = pool.next>i ? i : pool.next;
             continue;
         }
 
