@@ -7,7 +7,7 @@
 
 #include "core/Projectiles.h"
 
-constexpr float THRUST = 50.f;
+constexpr float THRUST = 5000.f;
 constexpr float ROT_SPEED = 3.f;
 
 void Core::Input::handleDebugInput(float dt) {
@@ -64,7 +64,8 @@ bool Core::Input::handleSpaceshipInput(EntityID id, float dt) {
     
 
     if (Core::Input::Consume::pressed(KEY_SPACE)) {
-        Core::Projectiles::spawn(kin.localPosition.x, kin.localPosition.y, sinf(kin.rotation)*(2000.f), -cosf(kin.rotation)*(2000.f), 0.5f, kin.chunk, 20, id, ProjectileType::Laser);
+        for (int i = 0; i < 1000; i++)
+            Core::Projectiles::spawn(kin.localPosition.x, kin.localPosition.y, sinf(kin.rotation+0.1f*i)*(2000.f), -cosf(kin.rotation+0.1f*i)*(2000.f), 0.5f, kin.chunk, 20, id, ProjectileType::Laser);
     }
 
     return pressed;

@@ -17,8 +17,8 @@ public:
 
     Mode mode;
 
-    constexpr static int simulationDistance = 3;
-    constexpr static int loadDistance = 3;
+    constexpr static int simulationDistance = 15;
+    constexpr static int loadDistance = 20;
     float renderZoom = 1.0f;
 
     GameCamera();
